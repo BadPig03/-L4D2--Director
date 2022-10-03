@@ -1,3 +1,4 @@
+import atexit
 import random
 import re
 import os
@@ -55,8 +56,8 @@ class App:
         script_file_path = []
         script_string = tkinter.StringVar()
         script_string.set('')
-        selected_file_path = ''
-        move_coordinates = ''
+        selected_file_path = ['', '', '']
+        move_coordinate = ''
 
         self.notebook = ttk.Notebook(master)
         self.page_first = tkinter.Frame(master)
@@ -108,20 +109,67 @@ class App:
         self.page_options.option_frame = tkinter.LabelFrame(self.page_options, text='文件路径', font=('DengXian', 10))
         self.page_options.option_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.48)
 
-        self.page_options.text_first = ttk.Label(self.page_options.option_frame, text='vmf路径：')
-        self.page_options.text_first.place(relx=0.01, rely=0.05)
+        self.page_options.vmf_text = ttk.Label(self.page_options.option_frame, text='vmf文件路径：')
+        self.page_options.vmf_text.place(relx=0.01, rely=0.05)
+        self.page_options.vmf_box = ttk.Entry(self.page_options.option_frame, width=89, state='readonly')
+        self.page_options.vmf_box.place(relx=0.155, rely=0.045)
+        self.page_options.vmf_select_button = ttk.Button(self.page_options.option_frame, text='浏览', command=lambda: select_file(0), width=9)
+        self.page_options.vmf_select_button.place(relx=0.88, rely=0.036)
 
-        self.page_options.file_box = ttk.Entry(self.page_options.option_frame, width=96, state='readonly')
-        self.page_options.file_box.place(relx=0.103, rely=0.045)
+        self.page_options.dict_text = ttk.Label(self.page_options.option_frame, text='混淆字典路径：')
+        self.page_options.dict_text.place(relx=0.01, rely=0.2)
+        self.page_options.dict_box = ttk.Entry(self.page_options.option_frame, width=89, state='readonly')
+        self.page_options.dict_box.place(relx=0.155, rely=0.195)
+        self.page_options.dict_select_button = ttk.Button(self.page_options.option_frame, text='浏览', command=lambda: select_file(1), width=9)
+        self.page_options.dict_select_button.place(relx=0.88, rely=0.186)
 
-        self.page_options.file_select_button = ttk.Button(self.page_options.option_frame, text='浏览', command=lambda: select_file(), width=9)
-        self.page_options.file_select_button.place(relx=0.88, rely=0.036)
+        self.page_options.game_text = ttk.Label(self.page_options.option_frame, text='游戏本体路径：')
+        self.page_options.game_text.place(relx=0.01, rely=0.35)
+        self.page_options.game_box = ttk.Entry(self.page_options.option_frame, width=89, state='readonly')
+        self.page_options.game_box.place(relx=0.155, rely=0.345)
+        self.page_options.game_select_button = ttk.Button(self.page_options.option_frame, text='浏览', command=lambda: select_file(2), width=9)
+        self.page_options.game_select_button.place(relx=0.88, rely=0.336)
 
         self.notebook.add(self.page_first, text='点实体')
         self.notebook.add(self.page_second, text='  贴图')
         self.notebook.add(self.page_third, text='  脚本')
         self.notebook.add(self.page_options, text='路径设置')
         self.notebook.pack(padx=10, pady=5, fill='both', expand=True)
+
+        def save_settings_before_exit():
+            with open(os.path.abspath('director.ini'), 'w') as settings_log:
+                settings_log.write('[Move Coordinate]\n')
+                settings_log.write('%s\n' % move_coordinate)
+                settings_log.write('\n[Flags]\n')
+                for item in flags:
+                    settings_log.write('%s\n' % item.get())
+                settings_log.write('\n[Selected File Path]\n')
+                for item in selected_file_path:
+                    settings_log.write('%s\n' % item)
+                settings_log.write('\n[Selected Script Files Path]\n')
+                for item in script_file_path:
+                    settings_log.write('%s\n' % item)
+
+        def select_file(index):
+            match index:
+                case 0:
+                    selected_file_path[0] = tkinter.filedialog.askopenfilename(filetypes=[('Valve Map Format', '*.vmf')])
+                    self.page_options.vmf_box.configure(state='normal')
+                    self.page_options.vmf_box.delete(0, 100000)
+                    self.page_options.vmf_box.insert(0, selected_file_path[0])
+                    self.page_options.vmf_box.configure(state='readonly')
+                case 1:
+                    selected_file_path[1] = tkinter.filedialog.askopenfilename(filetypes=[('Director Dict File', '*.dict')])
+                    self.page_options.dict_box.configure(state='normal')
+                    self.page_options.dict_box.delete(0, 100000)
+                    self.page_options.dict_box.insert(0, selected_file_path[1])
+                    self.page_options.dict_box.configure(state='readonly')
+                case 2:
+                    selected_file_path[2] = tkinter.filedialog.askopenfilename(filetypes=[('left4dead2.exe', 'left4dead2.exe')])
+                    self.page_options.game_box.configure(state='normal')
+                    self.page_options.game_box.delete(0, 100000)
+                    self.page_options.game_box.insert(0, selected_file_path[2])
+                    self.page_options.game_box.configure(state='readonly')
 
         def edit_script():
             for file_path in script_file_path:
@@ -157,7 +205,7 @@ class App:
             nonlocal selected_file_path
             flag = False
             entity_id = 0
-            with open(selected_file_path, 'r', -1, 'utf-8') as file:
+            with open(selected_file_path[0], 'r', -1, 'utf-8') as file:
                 for row in file:
                     if flag is False and re.match('\t\"id\" \"[0-9]*\"', row):
                         entity_id = row.split('\" \"')[1].replace('\"', '').replace('\n', '')
@@ -173,10 +221,10 @@ class App:
 
         def check_coordinate():
             if flags[0].get():
-                nonlocal move_coordinates
+                nonlocal move_coordinate
                 temp_coordinates = self.page_first.coordinate_box.get()
                 if re.fullmatch('^(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?$', temp_coordinates):
-                    move_coordinates = re.sub('[^0-9.-]+', ' ', temp_coordinates)
+                    move_coordinate = re.sub('[^0-9.-]+', ' ', temp_coordinates)
                     return True
                 else:
                     return False
@@ -192,14 +240,6 @@ class App:
             if messagebox.askquestion('确认', '确认要混淆vmf文件吗？\n将会覆盖源文件并创建.bak备份文件！') == 'yes':
                 edit_file()
 
-        def select_file():
-            nonlocal selected_file_path
-            selected_file_path = tkinter.filedialog.askopenfilename(filetypes=[('Valve Map Format', '*.vmf')])
-            self.page_options.file_box.configure(state='normal')
-            self.page_options.file_box.delete(0, 100000)
-            self.page_options.file_box.insert(0, selected_file_path)
-            self.page_options.file_box.configure(state='readonly')
-
         def select_script_file():
             nonlocal script_file_path
             script_file_path = tkinter.filedialog.askopenfilenames(filetypes=[('NUT File', '*.nut')])
@@ -207,7 +247,7 @@ class App:
 
         def edit_file():
             nonlocal selected_file_path
-            file_path = selected_file_path.replace('\\', '/')
+            file_path = selected_file_path[0].replace('\\', '/')
             parse(open(file_path, 'r', -1, 'utf-8'))
             try:
                 os.rename(file_path, '%s.bak' % file_path)
@@ -262,7 +302,7 @@ class App:
                     else:
                         continue
                 if flag is True and re.match('\t\"origin\" \".*?\"', row):
-                    row = '\t\"origin\" \"%s\"\n' % move_coordinates
+                    row = '\t\"origin\" \"%s\"\n' % move_coordinate
                     flag = False
                 new_file.write(row)
             if flags[2].get():
@@ -273,7 +313,7 @@ class App:
                         log_file.write('%s\n' % item)
                     log_file.write('!%s' % time.strftime('%Y-%m-%d %H:%M:%S'))
             messagebox.showinfo('提示', 'vmf已混淆完成！\n.bak备份文件已创建！')
-
+        atexit.register(save_settings_before_exit)
 
 if __name__ == '__main__':
     window = tkinter.Tk()
