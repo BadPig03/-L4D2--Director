@@ -105,17 +105,17 @@ class App:
         self.page_first.log_checkbutton.place(relx=0.02, rely=0.75)
         self.page_first.log_checkbutton.invoke()
 
-        self.page_options.option_frame = tkinter.LabelFrame(self.page_options, text='设置', font=('DengXian', 10))
-        self.page_options.option_frame.place(relx=0.06, rely=0.25, relwidth=0.88, relheight=0.5)
+        self.page_options.option_frame = tkinter.LabelFrame(self.page_options, text='文件路径', font=('DengXian', 10))
+        self.page_options.option_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.48)
 
-        self.page_options.text_first = ttk.Label(self.page_options, text='vmf路径：')
-        self.page_options.text_first.place(relx=0.055, rely=0.105)
+        self.page_options.text_first = ttk.Label(self.page_options.option_frame, text='vmf路径：')
+        self.page_options.text_first.place(relx=0.01, rely=0.05)
 
-        self.page_options.file_box = ttk.Entry(self.page_options, width=48, state='readonly')
-        self.page_options.file_box.place(relx=0.196, rely=0.1)
+        self.page_options.file_box = ttk.Entry(self.page_options.option_frame, width=96, state='readonly')
+        self.page_options.file_box.place(relx=0.103, rely=0.045)
 
-        self.page_options.file_select_button = ttk.Button(self.page_options, text='浏览', command=lambda: select_file(), width=9)
-        self.page_options.file_select_button.place(relx=0.8, rely=0.09)
+        self.page_options.file_select_button = ttk.Button(self.page_options.option_frame, text='浏览', command=lambda: select_file(), width=9)
+        self.page_options.file_select_button.place(relx=0.88, rely=0.036)
 
         self.notebook.add(self.page_first, text='点实体')
         self.notebook.add(self.page_second, text='  贴图')
@@ -277,11 +277,11 @@ class App:
 
 if __name__ == '__main__':
     window = tkinter.Tk()
-    window.title('求生之路2 vmf混淆器 by ty')
+    window.title('Director by ty')
     window.geometry('800x600')
     window.resizable(False, False)
     window.configure(bg='white')
-    window.iconphoto(True, tkinter.PhotoImage(file='icon.png'))
+    window.iconphoto(True, tkinter.PhotoImage(file='icon_small.png'))
 
     App(window)
     # messagebox.showinfo('提示', 'vmf混淆器的作用：\n1.将所有实体的targetname重命名为无意义字符串\n2.IO里对应的targetname也会随之更改\n3.(可选)将对位置无要求的点实体移动到指定位置\n4.(可选)将指定脚本文件里的targetname也一并混淆\n5.(可选)保存一个targetname被混淆前后的日志文件')
