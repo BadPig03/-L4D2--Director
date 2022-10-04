@@ -9,7 +9,7 @@ from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
 
-__version__ = 'v0.1.1-alpha'
+__version__ = 'v0.1.2-alpha'
 
 if __name__ != '__main__':
     exit(0)
@@ -163,7 +163,7 @@ def choose_move_entity_type():
     def destroy_window():
         move_entity_window.destroy()
 
-    ttk.Button(move_entity_window, text='保存', command=lambda: destroy_window(), width=10).place(relx=0.87, rely=0.905)
+    ttk.Button(move_entity_window, text='保存', command=lambda: destroy_window(), width=10).grid(row=24, column=3, sticky='e')
     for name in move_criteria.items():
         if index_list[0] <= 25:
             ttk.Checkbutton(move_entity_window, text=name[0], variable=name[1]).grid(row=index_list[0], column=index_list[1], sticky='w')
@@ -336,22 +336,22 @@ def replace_string(old_file, new_file, file_path):
     messagebox.showinfo('提示', 'vmf已混淆完成！\n.bak备份文件已创建！')
 
 
-page_first.option_frame = tkinter.LabelFrame(page_first, text='选择', font=('DengXian', 10))
+page_first.option_frame = tkinter.LabelFrame(page_first, text='选项', font=('DengXian', 10))
 page_first.option_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.48)
-page_first.move_checkbutton = ttk.Checkbutton(page_first.option_frame, text='将指定点实体移动到                                的位置', command=lambda: update_flags(), variable=move_checkbutton_flag)
-page_first.move_checkbutton.place(relx=0.01, rely=0.02)
-page_first.move_box = ttk.Entry(page_first.option_frame, width=20, state='readonly')
-page_first.move_box.place(relx=0.229, rely=0.02)
-page_first.move_button = ttk.Button(page_first.option_frame, text='指定点实体类型', command=lambda: choose_move_entity_type(), width=15)
-page_first.move_button.place(relx=0.815, rely=0.012)
-page_first.script_checkbutton = ttk.Checkbutton(page_first.option_frame, text='一并处理脚本文件', command=lambda: update_flags(), variable=script_checkbutton_flag)
-page_first.script_checkbutton.place(relx=0.02, rely=0.4)
+page_first.move_checkbutton = ttk.Checkbutton(page_first.option_frame, text='将指定点实体移动到指定位置:', command=lambda: update_flags(), variable=move_checkbutton_flag)
+page_first.move_checkbutton.grid(column=0, row=0, padx=5, pady=5, sticky='w')
+page_first.move_box = ttk.Entry(page_first.option_frame, width=57, state='readonly')
+page_first.move_box.grid(column=1, row=0, padx=5, pady=5)
+page_first.move_button = ttk.Button(page_first.option_frame, text='指定实体类型', command=lambda: choose_move_entity_type(), width=15)
+page_first.move_button.grid(column=2, row=0, padx=5)
+page_first.script_checkbutton = ttk.Checkbutton(page_first.option_frame, text='同时对指定脚本文件进行混淆:', command=lambda: update_flags(), variable=script_checkbutton_flag)
+page_first.script_checkbutton.grid(column=0, row=1, padx=5, pady=5, sticky='w')
 page_first.text_third = ttk.Label(page_first.option_frame, textvariable=script_string_var)
-page_first.text_third.place(relx=0.37, rely=0.4)
-page_first.script_select_button = ttk.Button(page_first.option_frame, text='选择文件', command=lambda: select_script_file(), width=9, state='disabled')
-page_first.script_select_button.place(relx=0.78, rely=0.38)
+page_first.text_third.grid(column=1, row=1, padx=5, pady=5, sticky='w')
+page_first.script_select_button = ttk.Button(page_first.option_frame, text='选择脚本文件', command=lambda: select_script_file(), width=15, state='disabled')
+page_first.script_select_button.grid(column=2, row=1, padx=5, pady=5)
 page_first.log_checkbutton = ttk.Checkbutton(page_first.option_frame, text='保存混淆字典', variable=log_checkbutton_flag)
-page_first.log_checkbutton.place(relx=0.02, rely=0.75)
+page_first.log_checkbutton.grid(column=0, row=2, padx=5, pady=5, sticky='w')
 page_first.log_checkbutton.invoke()
 page_first.execute_button = ttk.Button(page_first, text='混淆', command=lambda: do_obfuscate(), width=9)
 page_first.execute_button.place(relx=0.8, rely=0.83)
@@ -383,10 +383,10 @@ page_update.update_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.
 ttk.Button(page_update.update_frame, text='检查更新', command=lambda: manually_update(), width=9).grid(column=0, row=1, padx=5, pady=5)
 page_update.update_frame.version_box = ttk.Entry(page_update.update_frame, width=94, state='readonly')
 page_update.update_frame.version_box.grid(column=1, row=1, pady=5)
-ttk.Button(page_update.update_frame, text='手动更新', state='disabled', command=lambda: force_update(), width=9).grid(column=2, row=1, padx=5, pady=5)
+ttk.Button(page_update.update_frame, text='手动更新', state='disabled', command=lambda: manually_update(), width=9).grid(column=2, row=1, padx=5, pady=5)
 
 
-notebook.add(page_first, text='点实体')
+notebook.add(page_first, text='Targetname混淆')
 notebook.add(page_second, text='贴图')
 notebook.add(page_third, text='脚本')
 notebook.add(page_options, text='路径设置')
