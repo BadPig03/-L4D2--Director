@@ -4,9 +4,12 @@ import re
 import os
 import tkinter
 import time
+import downloader
 from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
+
+__version__ = 'v0.1.1-alpha'
 
 if __name__ != '__main__':
     exit(0)
@@ -58,7 +61,6 @@ move_criteria = {'ai_speechfilter': tkinter.IntVar(value=1), 'ambient_music': tk
                  'point_surroundtest': tkinter.IntVar(value=1), 'point_template': tkinter.IntVar(value=1), 'point_velocitysensor': tkinter.IntVar(value=1), 'postprocess_controller': tkinter.IntVar(value=1),
                  'shadow_control': tkinter.IntVar(value=1), 'sound_mix_layer': tkinter.IntVar(value=1), 'tanktrain_ai': tkinter.IntVar(value=1), 'target_changegravity': tkinter.IntVar(value=1), 'vgui_screen': tkinter.IntVar(value=1),
                  'vgui_slideshow_display': tkinter.IntVar(value=1), 'water_lod_control': tkinter.IntVar(value=1)}
-
 move_checkbutton_flag = tkinter.IntVar()
 script_checkbutton_flag = tkinter.IntVar()
 log_checkbutton_flag = tkinter.IntVar()
@@ -67,7 +69,6 @@ entities_dict = {}
 move_entities_dict = {}
 blacklist_list = []
 script_file_path_list = []
-move_criteria_flag = []
 
 script_string_var = tkinter.StringVar()
 script_string_var.set('')
@@ -81,6 +82,7 @@ page_first = tkinter.Frame(window)
 page_second = tkinter.Frame(window)
 page_third = tkinter.Frame(window)
 page_options = tkinter.Frame(window)
+page_update = tkinter.Frame(window)
 
 style = ttk.Style(window)
 style.theme_settings('xpnative', settings={
@@ -109,9 +111,81 @@ def save_settings_before_exit():
             temp_string[0] += (file_path.replace('\n', '') + ' \x1b ')
         settings_log.write(temp_string[0].removesuffix(' \x1b ') + '\n')
         settings_log.write('move_criteria = ')
-        for item in move_criteria.items():
-            temp_string[1] += '%s: %s \x1b ' % (item[0], item[1].get())
+        for move_item in move_criteria.items():
+            temp_string[1] += '%s: %s \x1b ' % (move_item[0], move_item[1].get())
         settings_log.write(temp_string[1].removesuffix(' \x1b '))
+
+
+def manually_update():
+    new_version = downloader.get_latest_version()
+    if new_version is None:
+        return
+    if new_version == __version__:
+        page_update.update_frame.version_box.configure(state='normal')
+        page_update.update_frame.version_box.delete(0, 100000)
+        page_update.update_frame.version_box.insert(0, 'Director处于最新版本！')
+        page_update.update_frame.version_box.configure(state='readonly')
+    else:
+        page_update.update_frame.version_box.configure(state='normal')
+        page_update.update_frame.version_box.delete(0, 100000)
+        page_update.update_frame.version_box.insert(0, 'Director有新版本可供升级！最新版本号：%s！' % new_version)
+        page_update.update_frame.version_box.configure(state='readonly')
+
+
+def move_entities():
+    flag = False
+    entity_id = 0
+    with open(vmf_path, 'r', -1, 'utf-8') as vmf_file:
+        for move_row in vmf_file:
+            if flag is False and re.match('\t\"id\" \"[0-9]*\"', move_row):
+                entity_id = move_row.split('\" \"')[1].replace('\"', '').replace('\n', '')
+            if flag is False and re.match('\t\"classname\" \".*?\"', move_row):
+                entity_classname = move_row.split('\" \"')[1].replace('\"', '').replace('\n', '')
+                if entity_classname in move_criteria:
+                    flag = True
+                else:
+                    continue
+            if flag is True and re.match('\t\"origin\" \".*?\"', move_row):
+                move_entities_dict[entity_id] = move_row.split('\" \"')[1].replace('\"', '').replace('\n', '')
+                flag = False
+
+
+def choose_move_entity_type():
+    index_list = [0, 0]
+    move_entity_window = tkinter.Toplevel(window)
+    move_entity_window.title('设置点实体类型白名单')
+    move_entity_window.geometry('1000x600')
+    move_entity_window.resizable(False, False)
+    move_entity_window.focus_force()
+    window.attributes('-disabled', True)
+    page_first.move_button.configure(state='disabled')
+
+    def destroy_window():
+        move_entity_window.destroy()
+
+    ttk.Button(move_entity_window, text='保存', command=lambda: destroy_window(), width=10).place(relx=0.87, rely=0.905)
+    for name in move_criteria.items():
+        if index_list[0] <= 25:
+            ttk.Checkbutton(move_entity_window, text=name[0], variable=name[1]).grid(row=index_list[0], column=index_list[1], sticky='w')
+            index_list[0] += 1
+        else:
+            index_list[0] = 0
+            index_list[1] += 1
+    page_first.move_button.wait_window(move_entity_window)
+    window.attributes('-disabled', False)
+    page_first.move_button.configure(state='normal')
+    window.focus_force()
+
+
+def check_coordinate():
+    global move_coordinate
+    if move_checkbutton_flag.get():
+        temp_coordinates = page_first.move_box.get()
+        if re.fullmatch('^(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?$', temp_coordinates):
+            move_coordinate = re.sub('[^0-9.-]+', ' ', temp_coordinates)
+            return True
+        else:
+            return False
 
 
 def select_file(selection_index):
@@ -151,74 +225,25 @@ def edit_script():
                 return
         with open('%s.bak' % script_path, 'r', -1, 'utf-8') as old_file, open(script_path, 'w', -1, 'utf-8') as new_file:
             for file_row in old_file:
-                for item in entities_dict.items():
-                    if item[0] in file_row:
-                        file_row = file_row.replace(item[0], item[1])
+                for entities_item in entities_dict.items():
+                    if entities_item[0] in file_row:
+                        file_row = file_row.replace(entities_item[0], entities_item[1])
                 new_file.write(file_row)
 
 
 def update_flags():
     if move_checkbutton_flag.get():
         page_first.move_box.configure(state='normal')
+        page_first.move_button.configure(state='normal')
     else:
-        page_first.move_box.configure(state='readonly')
+        page_first.move_box.configure(state='disabled')
+        page_first.move_button.configure(state='disabled')
     if script_checkbutton_flag.get():
         page_first.script_select_button.configure(state='normal')
         script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
     else:
         page_first.script_select_button.configure(state='disabled')
         script_string_var.set('')
-
-
-def move_entities():
-    flag = False
-    entity_id = 0
-    with open(vmf_path, 'r', -1, 'utf-8') as vmf_file:
-        for move_row in vmf_file:
-            if flag is False and re.match('\t\"id\" \"[0-9]*\"', move_row):
-                entity_id = move_row.split('\" \"')[1].replace('\"', '').replace('\n', '')
-            if flag is False and re.match('\t\"classname\" \".*?\"', move_row):
-                entity_classname = move_row.split('\" \"')[1].replace('\"', '').replace('\n', '')
-                if entity_classname in move_criteria:
-                    flag = True
-                else:
-                    continue
-            if flag is True and re.match('\t\"origin\" \".*?\"', move_row):
-                move_entities_dict[entity_id] = move_row.split('\" \"')[1].replace('\"', '').replace('\n', '')
-                flag = False
-
-
-def choose_move_entity_type():
-    index_list = [0, 0]
-    child_window = tkinter.Toplevel(window)
-    child_window.title('设置点实体类型过滤器')
-    child_window.geometry('1000x600')
-    child_window.resizable(False, False)
-    child_window.focus_set()
-    window.attributes('-disabled', True)
-    page_first.move_button.configure(state='disabled')
-    for name in move_criteria.items():
-        if index_list[0] <= 25:
-            ttk.Checkbutton(child_window, text=name[0], command=lambda: update_flags(), variable=name[1]).grid(row=index_list[0], column=index_list[1], sticky='w')
-            index_list[0] += 1
-        else:
-            index_list[0] = 0
-            index_list[1] += 1
-    page_first.move_button.wait_window(child_window)
-    window.attributes('-disabled', False)
-    page_first.move_button.configure(state='normal')
-
-
-def check_coordinate():
-    global move_coordinate
-    if move_checkbutton_flag.get():
-        temp_coordinates = page_first.move_box.get()
-        print(temp_coordinates)
-        if re.fullmatch('^(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?$', temp_coordinates):
-            move_coordinate = re.sub('[^0-9.-]+', ' ', temp_coordinates)
-            return True
-        else:
-            return False
 
 
 def do_obfuscate():
@@ -286,11 +311,11 @@ def replace_string(old_file, new_file, file_path):
         if re.search("\"[A-Za-z0-9]+\" \"", old_file_row):
             criteria = re.search("\"[A-Za-z0-9]+\" \"", old_file_row).group()[1:-3]
             if criteria in replace_criteria:
-                for item in entities_dict.items():
-                    old_file_row = old_file_row.replace('\"' + criteria + '\" \"' + item[0] + '\"', '\"' + criteria + '\" \"' + item[1] + '\"')
+                for entities_item in entities_dict.items():
+                    old_file_row = old_file_row.replace('\"' + criteria + '\" \"' + entities_item[0] + '\"', '\"' + criteria + '\" \"' + entities_item[1] + '\"')
         if re.search("[A-Za-z0-9]+\x1b", old_file_row):
-            for item in entities_dict.items():
-                old_file_row = old_file_row.replace(item[0] + '\x1b', item[1] + '\x1b')
+            for entities_item in entities_dict.items():
+                old_file_row = old_file_row.replace(entities_item[0] + '\x1b', entities_item[1] + '\x1b')
         if flag is False and re.match('\t\"id\" \"[0-9]*\"', old_file_row):
             entity_id = old_file_row.split('\" \"')[1].replace('\"', '').replace('\n', '')
             if entity_id in move_entities_dict.keys():
@@ -303,10 +328,10 @@ def replace_string(old_file, new_file, file_path):
         new_file.write(old_file_row)
     if log_checkbutton_flag.get():
         with open('%s.log' % file_path, 'w', -1, 'utf-8') as log_file:
-            for item in entities_dict.items():
-                log_file.write('%s -> %s\n' % (item[0], item[1]))
-            for item in list(set(blacklist_list)):
-                log_file.write('%s\n' % item)
+            for entities_item in entities_dict.items():
+                log_file.write('%s -> %s\n' % (entities_item[0], entities_item[1]))
+            for entities_item in list(set(blacklist_list)):
+                log_file.write('%s\n' % entities_item)
             log_file.write('!%s' % time.strftime('%Y-%m-%d %H:%M:%S'))
     messagebox.showinfo('提示', 'vmf已混淆完成！\n.bak备份文件已创建！')
 
@@ -338,31 +363,34 @@ page_first.text_second.place(relx=0.05, rely=0.835)
 page_options.option_frame = tkinter.LabelFrame(page_options, text='文件路径', font=('DengXian', 10))
 page_options.option_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.48)
 
-page_options.vmf_text = ttk.Label(page_options.option_frame, text='vmf文件路径：')
-page_options.vmf_text.place(relx=0.01, rely=0.05)
+ttk.Label(page_options.option_frame, text='vmf文件路径：').place(relx=0.01, rely=0.05)
 page_options.vmf_box = ttk.Entry(page_options.option_frame, width=89, state='readonly')
 page_options.vmf_box.place(relx=0.155, rely=0.045)
-page_options.vmf_select_button = ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(0), width=9)
-page_options.vmf_select_button.place(relx=0.88, rely=0.036)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(0), width=9).place(relx=0.88, rely=0.036)
 
-page_options.dict_text = ttk.Label(page_options.option_frame, text='混淆字典路径：')
-page_options.dict_text.place(relx=0.01, rely=0.2)
+ttk.Label(page_options.option_frame, text='混淆字典路径：').place(relx=0.01, rely=0.2)
 page_options.dict_box = ttk.Entry(page_options.option_frame, width=89, state='readonly')
 page_options.dict_box.place(relx=0.155, rely=0.195)
-page_options.dict_select_button = ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(1), width=9)
-page_options.dict_select_button.place(relx=0.88, rely=0.186)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(1), width=9).place(relx=0.88, rely=0.186)
 
-page_options.game_text = ttk.Label(page_options.option_frame, text='游戏本体路径：')
-page_options.game_text.place(relx=0.01, rely=0.35)
+ttk.Label(page_options.option_frame, text='游戏本体路径：').place(relx=0.01, rely=0.35)
 page_options.game_box = ttk.Entry(page_options.option_frame, width=89, state='readonly')
 page_options.game_box.place(relx=0.155, rely=0.345)
-page_options.game_select_button = ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(2), width=9)
-page_options.game_select_button.place(relx=0.88, rely=0.336)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(2), width=9).place(relx=0.88, rely=0.336)
+
+page_update.update_frame = tkinter.LabelFrame(page_update, text='当前版本：%s' % __version__, font=('DengXian', 10))
+page_update.update_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.98)
+ttk.Button(page_update.update_frame, text='检查更新', command=lambda: manually_update(), width=9).grid(column=0, row=1, padx=5, pady=5)
+page_update.update_frame.version_box = ttk.Entry(page_update.update_frame, width=94, state='readonly')
+page_update.update_frame.version_box.grid(column=1, row=1, pady=5)
+ttk.Button(page_update.update_frame, text='手动更新', state='disabled', command=lambda: force_update(), width=9).grid(column=2, row=1, padx=5, pady=5)
+
 
 notebook.add(page_first, text='点实体')
 notebook.add(page_second, text='贴图')
 notebook.add(page_third, text='脚本')
 notebook.add(page_options, text='路径设置')
+notebook.add(page_update, text='版本更新')
 notebook.pack(padx=10, pady=5, fill='both', expand=True)
 
 with open(os.getenv('APPDATA') + '\\Director\\director.ini', 'a+') as director_settings:
