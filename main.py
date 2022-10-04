@@ -34,17 +34,30 @@ replace_criteria = ['targetname', 'parentname', 'target', 'PSName', 'SourceEntit
                     'TargetReference', 'enemyfilter', 'squadname', 'cameraname', 'spawnpositionname', 'scene0', 'scene1', 'scene2', 'scene3', 'scene4', 'scene5', 'scene6', 'scene7', 'scene8', 'scene9', 'scene10', 'scene11', 'scene12',
                     'scene13', 'scene14', 'scene15', 'target1', 'target2', 'target3', 'target4', 'target5', 'target6', 'target7', 'target8', 'target_entity', 'hint_target', 'nozzle', 'RockTargetName', 'model', 'ColorCorrectionName',
                     'FogName', 'PostProcessName', 'glow', 'train', 'toptrack', 'bottomtrack', 'landmark', 'measuretarget', 'soundscape', 'TonemapName']
-move_criteria = ['env_dof_controller', 'game_gib_manager', 'game_ragdoll_manager', 'env_texturetoggle', 'env_screeneffect', 'env_screenoverlay', 'env_zoom', 'sound_mix_layer', 'ambient_music', 'env_fade', 'env_player_surface_trigger',
-                 'env_tonemap_controller', 'env_tonemap_controller_infected', 'env_tonemap_controller_ghost', 'vgui_screen', 'vgui_slideshow_display', 'env_hudhint', 'env_message', 'postprocess_controller', 'env_fog_controller',
-                 'env_wind', 'game_weapon_manager', 'game_end', 'game_player_equip', 'game_player_team', 'game_score', 'game_text', 'info_no_dynamic_shadow', 'point_bonusmaps_accessor', 'point_broadcastclientcommand',
-                 'point_servercommand', 'point_clientcommand', 'env_effectscript', 'env_particlescript', 'color_correction', 'shadow_control', 'light_directional', 'light_environment', 'logic_auto', 'point_posecontroller',
-                 'logic_compare', 'logic_branch', 'logic_branch_listener', 'logic_case', 'logic_multicompare', 'logic_relay', 'logic_timer', 'hammer_updateignorelist', 'logic_collision_pair', 'math_remap', 'math_colorblend',
-                 'math_counter', 'logic_navigation', 'logic_autosave', 'logic_active_autosave', 'point_template', 'filter_multi', 'filter_activator_name', 'filter_activator_model', 'filter_activator_context', 'filter_activator_class',
-                 'filter_activator_mass_greater', 'filter_damage_type', 'point_angularvelocitysensor', 'point_velocitysensor', 'phys_constraintsystem', 'phys_keepupright', 'tanktrain_ai', 'phys_convert', 'ai_speechfilter',
-                 'water_lod_control', 'info_camera_link', 'env_credits', 'material_modify_control', 'logic_playerproxy', 'env_particle_performance_monitor', 'point_gamestats_counter', 'logic_scene_list_manager',
-                 'logic_choreographed_scene', 'func_timescale', 'logic_script', 'player_weaponstrip', 'logic_director_query', 'info_director', 'game_scavenge_progress_display', 'filter_activator_team', 'filter_activator_infected_class',
-                 'filter_melee_damage', 'filter_health', 'info_map_parameters', 'info_map_parameters_versus', 'info_gamemode', 'env_detail_controller', 'env_outtro_stats', 'logic_game_event', 'logic_versus_random', 'env_global',
-                 'point_surroundtest', 'player_speedmod', 'target_changegravity']
+move_criteria = {'ai_speechfilter': tkinter.IntVar(value=1), 'ambient_music': tkinter.IntVar(value=1), 'color_correction': tkinter.IntVar(value=1), 'env_credits': tkinter.IntVar(value=1), 'env_detail_controller': tkinter.IntVar(value=1),
+                 'env_dof_controller': tkinter.IntVar(value=1), 'env_effectscript': tkinter.IntVar(value=1), 'env_fade': tkinter.IntVar(value=1), 'env_fog_controller': tkinter.IntVar(value=1), 'env_global': tkinter.IntVar(value=1),
+                 'env_hudhint': tkinter.IntVar(value=1), 'env_message': tkinter.IntVar(value=1), 'env_outtro_stats': tkinter.IntVar(value=1), 'env_particle_performance_monitor': tkinter.IntVar(value=1),
+                 'env_particlescript': tkinter.IntVar(value=1), 'env_player_surface_trigger': tkinter.IntVar(value=1), 'env_screeneffect': tkinter.IntVar(value=1), 'env_screenoverlay': tkinter.IntVar(value=1),
+                 'env_texturetoggle': tkinter.IntVar(value=1), 'env_tonemap_controller': tkinter.IntVar(value=1), 'env_tonemap_controller_ghost': tkinter.IntVar(value=1), 'env_tonemap_controller_infected': tkinter.IntVar(value=1),
+                 'env_wind': tkinter.IntVar(value=1), 'env_zoom': tkinter.IntVar(value=1), 'filter_activator_class': tkinter.IntVar(value=1), 'filter_activator_context': tkinter.IntVar(value=1),
+                 'filter_activator_infected_class': tkinter.IntVar(value=1), 'filter_activator_mass_greater': tkinter.IntVar(value=1), 'filter_activator_model': tkinter.IntVar(value=1), 'filter_activator_name': tkinter.IntVar(value=1),
+                 'filter_activator_team': tkinter.IntVar(value=1), 'filter_damage_type': tkinter.IntVar(value=1), 'filter_health': tkinter.IntVar(value=1), 'filter_melee_damage': tkinter.IntVar(value=1),
+                 'filter_multi': tkinter.IntVar(value=1), 'func_timescale': tkinter.IntVar(value=1), 'game_end': tkinter.IntVar(value=1), 'game_gib_manager': tkinter.IntVar(value=1), 'game_player_equip': tkinter.IntVar(value=1),
+                 'game_player_team': tkinter.IntVar(value=1), 'game_ragdoll_manager': tkinter.IntVar(value=1), 'game_scavenge_progress_display': tkinter.IntVar(value=1), 'game_score': tkinter.IntVar(value=1),
+                 'game_text': tkinter.IntVar(value=1), 'game_weapon_manager': tkinter.IntVar(value=1), 'hammer_updateignorelist': tkinter.IntVar(value=1), 'info_camera_link': tkinter.IntVar(value=1),
+                 'info_director': tkinter.IntVar(value=1), 'info_gamemode': tkinter.IntVar(value=1), 'info_map_parameters': tkinter.IntVar(value=1), 'info_map_parameters_versus': tkinter.IntVar(value=1),
+                 'info_no_dynamic_shadow': tkinter.IntVar(value=1), 'light_directional': tkinter.IntVar(value=1), 'light_environment': tkinter.IntVar(value=1), 'logic_active_autosave': tkinter.IntVar(value=1),
+                 'logic_auto': tkinter.IntVar(value=1), 'logic_autosave': tkinter.IntVar(value=1), 'logic_branch': tkinter.IntVar(value=1), 'logic_branch_listener': tkinter.IntVar(value=1), 'logic_case': tkinter.IntVar(value=1),
+                 'logic_choreographed_scene': tkinter.IntVar(value=1), 'logic_collision_pair': tkinter.IntVar(value=1), 'logic_compare': tkinter.IntVar(value=1), 'logic_director_query': tkinter.IntVar(value=1),
+                 'logic_game_event': tkinter.IntVar(value=1), 'logic_multicompare': tkinter.IntVar(value=1), 'logic_navigation': tkinter.IntVar(value=1), 'logic_playerproxy': tkinter.IntVar(value=1), 'logic_relay': tkinter.IntVar(value=1),
+                 'logic_scene_list_manager': tkinter.IntVar(value=1), 'logic_script': tkinter.IntVar(value=1), 'logic_timer': tkinter.IntVar(value=1), 'logic_versus_random': tkinter.IntVar(value=1),
+                 'material_modify_control': tkinter.IntVar(value=1), 'math_colorblend': tkinter.IntVar(value=1), 'math_counter': tkinter.IntVar(value=1), 'math_remap': tkinter.IntVar(value=1),
+                 'phys_constraintsystem': tkinter.IntVar(value=1), 'phys_convert': tkinter.IntVar(value=1), 'phys_keepupright': tkinter.IntVar(value=1), 'player_speedmod': tkinter.IntVar(value=1),
+                 'player_weaponstrip': tkinter.IntVar(value=1), 'point_angularvelocitysensor': tkinter.IntVar(value=1), 'point_bonusmaps_accessor': tkinter.IntVar(value=1), 'point_broadcastclientcommand': tkinter.IntVar(value=1),
+                 'point_clientcommand': tkinter.IntVar(value=1), 'point_gamestats_counter': tkinter.IntVar(value=1), 'point_posecontroller': tkinter.IntVar(value=1), 'point_servercommand': tkinter.IntVar(value=1),
+                 'point_surroundtest': tkinter.IntVar(value=1), 'point_template': tkinter.IntVar(value=1), 'point_velocitysensor': tkinter.IntVar(value=1), 'postprocess_controller': tkinter.IntVar(value=1),
+                 'shadow_control': tkinter.IntVar(value=1), 'sound_mix_layer': tkinter.IntVar(value=1), 'tanktrain_ai': tkinter.IntVar(value=1), 'target_changegravity': tkinter.IntVar(value=1), 'vgui_screen': tkinter.IntVar(value=1),
+                 'vgui_slideshow_display': tkinter.IntVar(value=1), 'water_lod_control': tkinter.IntVar(value=1)}
 
 move_checkbutton_flag = tkinter.IntVar()
 script_checkbutton_flag = tkinter.IntVar()
@@ -52,9 +65,9 @@ log_checkbutton_flag = tkinter.IntVar()
 
 entities_dict = {}
 move_entities_dict = {}
-
 blacklist_list = []
 script_file_path_list = []
+move_criteria_flag = []
 
 script_string_var = tkinter.StringVar()
 script_string_var.set('')
@@ -76,12 +89,13 @@ style.theme_settings('xpnative', settings={
     'TButton': {'configure': {'font': ('DengXian', 12)}},
     'TEntry': {'configure': {'font': ('Calibri', 10)}},
     'TNotebook': {'configure': {'background': 'white', 'font': ('DengXian', 12)}},
-    'TNotebook.Tab': {'configure': {'font': ('DengXian', 12), 'width': 8}}})
+    'TNotebook.Tab': {'configure': {'font': ('DengXian', 12)}}})
 style.theme_use('xpnative')
 
 
 def save_settings_before_exit():
     global script_file_path_list
+    temp_string = ['', '']
     with open(os.getenv('APPDATA') + '\\Director\\director.ini', 'w') as settings_log:
         settings_log.write('move_coordinate = %s\n' % move_coordinate.replace('\n', ''))
         settings_log.write('move_checkbutton_flag = %s\n' % move_checkbutton_flag.get())
@@ -92,14 +106,19 @@ def save_settings_before_exit():
         settings_log.write('game_path = %s\n' % game_path.replace('\n', ''))
         settings_log.write('script_file_path_list = ')
         for file_path in script_file_path_list:
-            settings_log.write(file_path + ' \x1b ')
+            temp_string[0] += (file_path.replace('\n', '') + ' \x1b ')
+        settings_log.write(temp_string[0].removesuffix(' \x1b ') + '\n')
+        settings_log.write('move_criteria = ')
+        for item in move_criteria.items():
+            temp_string[1] += '%s: %s \x1b ' % (item[0], item[1].get())
+        settings_log.write(temp_string[1].removesuffix(' \x1b '))
 
 
-def select_file(index):
+def select_file(selection_index):
     global vmf_path
     global dict_path
     global game_path
-    match index:
+    match selection_index:
         case 0:
             vmf_path = tkinter.filedialog.askopenfilename(filetypes=[('Valve Map Format', '*.vmf')])
             page_options.vmf_box.configure(state='normal')
@@ -140,9 +159,9 @@ def edit_script():
 
 def update_flags():
     if move_checkbutton_flag.get():
-        page_first.coordinate_box.configure(state='normal')
+        page_first.move_box.configure(state='normal')
     else:
-        page_first.coordinate_box.configure(state='readonly')
+        page_first.move_box.configure(state='readonly')
     if script_checkbutton_flag.get():
         page_first.script_select_button.configure(state='normal')
         script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
@@ -169,10 +188,31 @@ def move_entities():
                 flag = False
 
 
+def choose_move_entity_type():
+    index_list = [0, 0]
+    child_window = tkinter.Toplevel(window)
+    child_window.title('设置点实体类型过滤器')
+    child_window.geometry('1000x600')
+    child_window.resizable(False, False)
+    child_window.focus_set()
+    window.attributes('-disabled', True)
+    page_first.move_button.configure(state='disabled')
+    for name in move_criteria.items():
+        if index_list[0] <= 25:
+            ttk.Checkbutton(child_window, text=name[0], command=lambda: update_flags(), variable=name[1]).grid(row=index_list[0], column=index_list[1], sticky='w')
+            index_list[0] += 1
+        else:
+            index_list[0] = 0
+            index_list[1] += 1
+    page_first.move_button.wait_window(child_window)
+    window.attributes('-disabled', False)
+    page_first.move_button.configure(state='normal')
+
+
 def check_coordinate():
     global move_coordinate
     if move_checkbutton_flag.get():
-        temp_coordinates = page_first.coordinate_box.get()
+        temp_coordinates = page_first.move_box.get()
         print(temp_coordinates)
         if re.fullmatch('^(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?$', temp_coordinates):
             move_coordinate = re.sub('[^0-9.-]+', ' ', temp_coordinates)
@@ -271,36 +311,29 @@ def replace_string(old_file, new_file, file_path):
     messagebox.showinfo('提示', 'vmf已混淆完成！\n.bak备份文件已创建！')
 
 
-page_first.option_frame = tkinter.LabelFrame(page_first, text='设置', font=('DengXian', 10))
-page_first.option_frame.place(relx=0.06, rely=0.25, relwidth=0.88, relheight=0.5)
-
-page_first.execute_button = ttk.Button(page_first, text='混淆', command=lambda: do_obfuscate(), width=9)
-page_first.execute_button.place(relx=0.8, rely=0.83)
-
-page_first.test_button = ttk.Button(page_first, text='测试', command=lambda: edit_script(), width=9)
-page_first.test_button.place(relx=0.6, rely=0.83)
-
-page_first.text_second = tkinter.Label(page_first, text='仅用于求生之路2的vmf文件！', font=('DengXian', 12), fg='red')
-page_first.text_second.place(relx=0.05, rely=0.835)
-
-page_first.move_checkbutton = ttk.Checkbutton(page_first.option_frame, text='将部分实体移动到                                的位置', command=lambda: update_flags(), variable=move_checkbutton_flag)
-page_first.move_checkbutton.place(relx=0.02, rely=0.05)
-
-page_first.coordinate_box = ttk.Entry(page_first.option_frame, width=20, state='readonly')
-page_first.coordinate_box.place(relx=0.366, rely=0.053)
-
+page_first.option_frame = tkinter.LabelFrame(page_first, text='选择', font=('DengXian', 10))
+page_first.option_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.48)
+page_first.move_checkbutton = ttk.Checkbutton(page_first.option_frame, text='将指定点实体移动到                                的位置', command=lambda: update_flags(), variable=move_checkbutton_flag)
+page_first.move_checkbutton.place(relx=0.01, rely=0.02)
+page_first.move_box = ttk.Entry(page_first.option_frame, width=20, state='readonly')
+page_first.move_box.place(relx=0.229, rely=0.02)
+page_first.move_button = ttk.Button(page_first.option_frame, text='指定点实体类型', command=lambda: choose_move_entity_type(), width=15)
+page_first.move_button.place(relx=0.815, rely=0.012)
 page_first.script_checkbutton = ttk.Checkbutton(page_first.option_frame, text='一并处理脚本文件', command=lambda: update_flags(), variable=script_checkbutton_flag)
 page_first.script_checkbutton.place(relx=0.02, rely=0.4)
-
 page_first.text_third = ttk.Label(page_first.option_frame, textvariable=script_string_var)
 page_first.text_third.place(relx=0.37, rely=0.4)
-
 page_first.script_select_button = ttk.Button(page_first.option_frame, text='选择文件', command=lambda: select_script_file(), width=9, state='disabled')
 page_first.script_select_button.place(relx=0.78, rely=0.38)
-
 page_first.log_checkbutton = ttk.Checkbutton(page_first.option_frame, text='保存混淆字典', variable=log_checkbutton_flag)
 page_first.log_checkbutton.place(relx=0.02, rely=0.75)
 page_first.log_checkbutton.invoke()
+page_first.execute_button = ttk.Button(page_first, text='混淆', command=lambda: do_obfuscate(), width=9)
+page_first.execute_button.place(relx=0.8, rely=0.83)
+page_first.test_button = ttk.Button(page_first, text='测试', command=lambda: edit_script(), width=9)
+page_first.test_button.place(relx=0.6, rely=0.83)
+page_first.text_second = tkinter.Label(page_first, text='仅用于求生之路2的vmf文件！', font=('DengXian', 12), fg='red')
+page_first.text_second.place(relx=0.05, rely=0.835)
 
 page_options.option_frame = tkinter.LabelFrame(page_options, text='文件路径', font=('DengXian', 10))
 page_options.option_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.48)
@@ -326,9 +359,9 @@ page_options.game_box.place(relx=0.155, rely=0.345)
 page_options.game_select_button = ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(2), width=9)
 page_options.game_select_button.place(relx=0.88, rely=0.336)
 
-notebook.add(page_first, text='  点实体')
-notebook.add(page_second, text='    贴图')
-notebook.add(page_third, text='    脚本')
+notebook.add(page_first, text='点实体')
+notebook.add(page_second, text='贴图')
+notebook.add(page_third, text='脚本')
 notebook.add(page_options, text='路径设置')
 notebook.pack(padx=10, pady=5, fill='both', expand=True)
 
@@ -337,9 +370,9 @@ with open(os.getenv('APPDATA') + '\\Director\\director.ini', 'a+') as director_s
     for row in director_settings:
         if row.startswith('move_coordinate ='):
             move_coordinate = row.split(' = ')[1].replace('\n', '')
-            page_first.coordinate_box.configure(state='normal')
-            page_first.coordinate_box.insert(0, move_coordinate)
-            page_first.coordinate_box.configure(state='readonly')
+            page_first.move_box.configure(state='normal')
+            page_first.move_box.insert(0, move_coordinate)
+            page_first.move_box.configure(state='readonly')
         if row.startswith('move_checkbutton_flag ='):
             if int(row.split(' = ')[1]) == 1:
                 page_first.move_checkbutton.invoke()
@@ -365,11 +398,14 @@ with open(os.getenv('APPDATA') + '\\Director\\director.ini', 'a+') as director_s
             page_options.game_box.insert(0, game_path)
             page_options.game_box.configure(state='readonly')
         if row.startswith('script_file_path_list ='):
-            if row != 'script_file_path_list = ':
+            if row != 'script_file_path_list = \n':
                 for path in row.split(' = ')[1].split(' \x1b '):
                     if path != '':
                         script_file_path_list.append(path)
                 script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
+        if row.startswith('move_criteria = '):
+            for move_list in row.split(' = ')[1].split(' \x1b '):
+                move_criteria[move_list.split(': ')[0]] = tkinter.IntVar(value=int(move_list.split(': ')[1]))
 
 atexit.register(save_settings_before_exit)
 window.mainloop()
