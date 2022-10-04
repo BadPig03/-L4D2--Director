@@ -45,6 +45,7 @@ move_criteria = ['env_dof_controller', 'game_gib_manager', 'game_ragdoll_manager
                  'logic_choreographed_scene', 'func_timescale', 'logic_script', 'player_weaponstrip', 'logic_director_query', 'info_director', 'game_scavenge_progress_display', 'filter_activator_team', 'filter_activator_infected_class',
                  'filter_melee_damage', 'filter_health', 'info_map_parameters', 'info_map_parameters_versus', 'info_gamemode', 'env_detail_controller', 'env_outtro_stats', 'logic_game_event', 'logic_versus_random', 'env_global',
                  'point_surroundtest', 'player_speedmod', 'target_changegravity']
+
 move_checkbutton_flag = tkinter.IntVar()
 script_checkbutton_flag = tkinter.IntVar()
 log_checkbutton_flag = tkinter.IntVar()
@@ -77,6 +78,198 @@ style.theme_settings('xpnative', settings={
     'TNotebook': {'configure': {'background': 'white', 'font': ('DengXian', 12)}},
     'TNotebook.Tab': {'configure': {'font': ('DengXian', 12), 'width': 8}}})
 style.theme_use('xpnative')
+
+
+def save_settings_before_exit():
+    global script_file_path_list
+    with open(os.getenv('APPDATA') + '\\Director\\director.ini', 'w') as settings_log:
+        settings_log.write('move_coordinate = %s\n' % move_coordinate.replace('\n', ''))
+        settings_log.write('move_checkbutton_flag = %s\n' % move_checkbutton_flag.get())
+        settings_log.write('script_checkbutton_flag = %s\n' % script_checkbutton_flag.get())
+        settings_log.write('log_checkbutton_flag = %s\n' % log_checkbutton_flag.get())
+        settings_log.write('vmf_path = %s\n' % vmf_path.replace('\n', ''))
+        settings_log.write('dict_path = %s\n' % dict_path.replace('\n', ''))
+        settings_log.write('game_path = %s\n' % game_path.replace('\n', ''))
+        settings_log.write('script_file_path_list = ')
+        for file_path in script_file_path_list:
+            settings_log.write(file_path + ' \x1b ')
+
+
+def select_file(index):
+    global vmf_path
+    global dict_path
+    global game_path
+    match index:
+        case 0:
+            vmf_path = tkinter.filedialog.askopenfilename(filetypes=[('Valve Map Format', '*.vmf')])
+            page_options.vmf_box.configure(state='normal')
+            page_options.vmf_box.delete(0, 100000)
+            page_options.vmf_box.insert(0, vmf_path)
+            page_options.vmf_box.configure(state='readonly')
+        case 1:
+            dict_path = tkinter.filedialog.askopenfilename(filetypes=[('Director Dict File', '*.dict')])
+            page_options.dict_box.configure(state='normal')
+            page_options.dict_box.delete(0, 100000)
+            page_options.dict_box.insert(0, dict_path)
+            page_options.dict_box.configure(state='readonly')
+        case 2:
+            game_path = tkinter.filedialog.askopenfilename(filetypes=[('left4dead2.exe', 'left4dead2.exe')])
+            page_options.game_box.configure(state='normal')
+            page_options.game_box.delete(0, 100000)
+            page_options.game_box.insert(0, game_path)
+            page_options.game_box.configure(state='readonly')
+
+
+def edit_script():
+    for script_path in script_file_path_list:
+        try:
+            os.rename(script_path, '%s.bak' % script_path)
+        except OSError:
+            if messagebox.askquestion('确认', '检测到.bak备份文件！\n若继续则会删除该备份文件！\n是否继续？') == 'yes':
+                os.remove('%s.bak' % script_path)
+                os.rename(script_path, '%s.bak' % script_path)
+            else:
+                return
+        with open('%s.bak' % script_path, 'r', -1, 'utf-8') as old_file, open(script_path, 'w', -1, 'utf-8') as new_file:
+            for file_row in old_file:
+                for item in entities_dict.items():
+                    if item[0] in file_row:
+                        file_row = file_row.replace(item[0], item[1])
+                new_file.write(file_row)
+
+
+def update_flags():
+    if move_checkbutton_flag.get():
+        page_first.coordinate_box.configure(state='normal')
+    else:
+        page_first.coordinate_box.configure(state='readonly')
+    if script_checkbutton_flag.get():
+        page_first.script_select_button.configure(state='normal')
+        script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
+    else:
+        page_first.script_select_button.configure(state='disabled')
+        script_string_var.set('')
+
+
+def move_entities():
+    flag = False
+    entity_id = 0
+    with open(vmf_path, 'r', -1, 'utf-8') as vmf_file:
+        for move_row in vmf_file:
+            if flag is False and re.match('\t\"id\" \"[0-9]*\"', move_row):
+                entity_id = move_row.split('\" \"')[1].replace('\"', '').replace('\n', '')
+            if flag is False and re.match('\t\"classname\" \".*?\"', move_row):
+                entity_classname = move_row.split('\" \"')[1].replace('\"', '').replace('\n', '')
+                if entity_classname in move_criteria:
+                    flag = True
+                else:
+                    continue
+            if flag is True and re.match('\t\"origin\" \".*?\"', move_row):
+                move_entities_dict[entity_id] = move_row.split('\" \"')[1].replace('\"', '').replace('\n', '')
+                flag = False
+
+
+def check_coordinate():
+    global move_coordinate
+    if move_checkbutton_flag.get():
+        temp_coordinates = page_first.coordinate_box.get()
+        print(temp_coordinates)
+        if re.fullmatch('^(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?$', temp_coordinates):
+            move_coordinate = re.sub('[^0-9.-]+', ' ', temp_coordinates)
+            return True
+        else:
+            return False
+
+
+def do_obfuscate():
+    if vmf_path == '':
+        messagebox.showerror('错误', '请选择文件！')
+        return
+    if move_checkbutton_flag.get() and not check_coordinate():
+        messagebox.showerror('错误', '不合法的地图坐标！')
+        return
+    if messagebox.askquestion('确认', '确认要混淆vmf文件吗？\n将会覆盖源文件并创建.bak备份文件！') == 'yes':
+        edit_file()
+
+
+def select_script_file():
+    global script_file_path_list
+    script_file_path_list = tkinter.filedialog.askopenfilenames(filetypes=[('NUT File', '*.nut')])
+    script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
+
+
+def edit_file():
+    file_path = vmf_path.replace('\\', '/')
+    parse(open(file_path, 'r', -1, 'utf-8'))
+    try:
+        os.rename(file_path, '%s.bak' % file_path)
+    except OSError:
+        if messagebox.askquestion('确认', '检测到.bak备份文件！\n若继续则会删除该备份文件！\n是否继续？') == 'yes':
+            os.remove('%s.bak' % file_path)
+            os.rename(file_path, '%s.bak' % file_path)
+        else:
+            return
+    with open('%s.bak' % file_path, 'r', -1, 'utf-8') as old_file, open(file_path, 'w', -1, 'utf-8') as new_file:
+        replace_string(old_file, new_file, file_path)
+
+
+def is_in_blacklist(blacklist_row):
+    for blacklist_item in blacklist_list:
+        if blacklist_row.startswith(blacklist_item):
+            return False
+    return True
+
+
+def parse(file):
+    if move_checkbutton_flag.get():
+        move_entities()
+    for file_row in file:
+        if '*' in file_row:
+            blacklist_list.append(file_row.split('*')[0].split('\"')[-1].split('\x1b')[-1])
+        if re.findall('\"targetname\" \".*?\"', file_row):
+            file_row = file_row.split("\" \"")[1][:-2]
+            if is_in_blacklist(file_row):
+                entities_dict[file_row] = random_string()
+
+
+def random_string():
+    letters = 'abcedfghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    numbers = '0123456789'
+    special_character = '#$%_-.+='
+    string = random.sample(letters + numbers + special_character, 16)
+    return ''.join(string)
+
+
+def replace_string(old_file, new_file, file_path):
+    flag = False
+    for old_file_row in old_file:
+        if re.search("\"[A-Za-z0-9]+\" \"", old_file_row):
+            criteria = re.search("\"[A-Za-z0-9]+\" \"", old_file_row).group()[1:-3]
+            if criteria in replace_criteria:
+                for item in entities_dict.items():
+                    old_file_row = old_file_row.replace('\"' + criteria + '\" \"' + item[0] + '\"', '\"' + criteria + '\" \"' + item[1] + '\"')
+        if re.search("[A-Za-z0-9]+\x1b", old_file_row):
+            for item in entities_dict.items():
+                old_file_row = old_file_row.replace(item[0] + '\x1b', item[1] + '\x1b')
+        if flag is False and re.match('\t\"id\" \"[0-9]*\"', old_file_row):
+            entity_id = old_file_row.split('\" \"')[1].replace('\"', '').replace('\n', '')
+            if entity_id in move_entities_dict.keys():
+                flag = True
+            else:
+                continue
+        if flag is True and re.match('\t\"origin\" \".*?\"', old_file_row):
+            old_file_row = '\t\"origin\" \"%s\"\n' % move_coordinate
+            flag = False
+        new_file.write(old_file_row)
+    if log_checkbutton_flag.get():
+        with open('%s.log' % file_path, 'w', -1, 'utf-8') as log_file:
+            for item in entities_dict.items():
+                log_file.write('%s -> %s\n' % (item[0], item[1]))
+            for item in list(set(blacklist_list)):
+                log_file.write('%s\n' % item)
+            log_file.write('!%s' % time.strftime('%Y-%m-%d %H:%M:%S'))
+    messagebox.showinfo('提示', 'vmf已混淆完成！\n.bak备份文件已创建！')
+
 
 page_first.option_frame = tkinter.LabelFrame(page_first, text='设置', font=('DengXian', 10))
 page_first.option_frame.place(relx=0.06, rely=0.25, relwidth=0.88, relheight=0.5)
@@ -133,202 +326,50 @@ page_options.game_box.place(relx=0.155, rely=0.345)
 page_options.game_select_button = ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(2), width=9)
 page_options.game_select_button.place(relx=0.88, rely=0.336)
 
-notebook.add(page_first, text='点实体')
-notebook.add(page_second, text='  贴图')
-notebook.add(page_third, text='  脚本')
+notebook.add(page_first, text='  点实体')
+notebook.add(page_second, text='    贴图')
+notebook.add(page_third, text='    脚本')
 notebook.add(page_options, text='路径设置')
 notebook.pack(padx=10, pady=5, fill='both', expand=True)
 
-
-def save_settings_before_exit():
-    with open(os.path.abspath('director.ini'), 'w') as settings_log:
-        settings_log.write('move_coordinate = %s\n' % move_coordinate)
-        settings_log.write('move_checkbutton_flag = %s\n' % move_checkbutton_flag.get())
-        settings_log.write('script_checkbutton_flag = %s\n' % script_checkbutton_flag.get())
-        settings_log.write('log_checkbutton_flag = %s\n' % log_checkbutton_flag.get())
-        settings_log.write('vmf_path = %s\n' % vmf_path)
-        settings_log.write('dict_path = %s\n' % dict_path)
-        settings_log.write('game_path = %s\n' % game_path)
-        settings_log.write('script_file_path_list = ')
-        settings_log.write(' \x1b '.join([path for path in script_file_path_list]))
-
-
-def select_file(index):
-    global vmf_path
-    global dict_path
-    global game_path
-    match index:
-        case 0:
-            vmf_path = tkinter.filedialog.askopenfilename(filetypes=[('Valve Map Format', '*.vmf')])
+with open(os.getenv('APPDATA') + '\\Director\\director.ini', 'a+') as director_settings:
+    director_settings.seek(0)
+    for row in director_settings:
+        if row.startswith('move_coordinate ='):
+            move_coordinate = row.split(' = ')[1].replace('\n', '')
+            page_first.coordinate_box.configure(state='normal')
+            page_first.coordinate_box.insert(0, move_coordinate)
+            page_first.coordinate_box.configure(state='readonly')
+        if row.startswith('move_checkbutton_flag ='):
+            if int(row.split(' = ')[1]) == 1:
+                page_first.move_checkbutton.invoke()
+        if row.startswith('script_checkbutton_flag ='):
+            if int(row.split(' = ')[1]) == 1:
+                page_first.script_checkbutton.invoke()
+        if row.startswith('log_checkbutton_flag ='):
+            if int(row.split(' = ')[1]) == 0:
+                page_first.log_checkbutton.invoke()
+        if row.startswith('vmf_path ='):
+            vmf_path = row.split(' = ')[1].replace('\n', '')
             page_options.vmf_box.configure(state='normal')
-            page_options.vmf_box.delete(0, 100000)
             page_options.vmf_box.insert(0, vmf_path)
             page_options.vmf_box.configure(state='readonly')
-        case 1:
-            dict_path = tkinter.filedialog.askopenfilename(filetypes=[('Director Dict File', '*.dict')])
+        if row.startswith('dict_path ='):
+            dict_path = row.split(' = ')[1].replace('\n', '')
             page_options.dict_box.configure(state='normal')
-            page_options.dict_box.delete(0, 100000)
             page_options.dict_box.insert(0, dict_path)
             page_options.dict_box.configure(state='readonly')
-        case 2:
-            game_path = tkinter.filedialog.askopenfilename(filetypes=[('left4dead2.exe', 'left4dead2.exe')])
+        if row.startswith('game_path ='):
+            game_path = row.split(' = ')[1].replace('\n', '')
             page_options.game_box.configure(state='normal')
-            page_options.game_box.delete(0, 100000)
             page_options.game_box.insert(0, game_path)
             page_options.game_box.configure(state='readonly')
-
-
-def edit_script():
-    for file_path in script_file_path_list:
-        try:
-            os.rename(file_path, '%s.bak' % file_path)
-        except OSError:
-            if messagebox.askquestion('确认', '检测到.bak备份文件！\n若继续则会删除该备份文件！\n是否继续？') == 'yes':
-                os.remove('%s.bak' % file_path)
-                os.rename(file_path, '%s.bak' % file_path)
-            else:
-                return
-        with open('%s.bak' % file_path, 'r', -1, 'utf-8') as old_file, open(file_path, 'w', -1, 'utf-8') as new_file:
-            for row in old_file:
-                for item in entities_dict.items():
-                    if item[0] in row:
-                        row = row.replace(item[0], item[1])
-                new_file.write(row)
-
-
-def update_flags():
-    if move_checkbutton_flag.get():
-        page_first.coordinate_box.config(state='normal')
-    else:
-        page_first.coordinate_box.config(state='readonly')
-    if script_checkbutton_flag.get():
-        page_first.script_select_button.config(state='normal')
-        script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
-    else:
-        page_first.script_select_button.config(state='disabled')
-        script_string_var.set('')
-
-
-def move_entities():
-    flag = False
-    entity_id = 0
-    with open(vmf_path, 'r', -1, 'utf-8') as file:
-        for row in file:
-            if flag is False and re.match('\t\"id\" \"[0-9]*\"', row):
-                entity_id = row.split('\" \"')[1].replace('\"', '').replace('\n', '')
-            if flag is False and re.match('\t\"classname\" \".*?\"', row):
-                entity_classname = row.split('\" \"')[1].replace('\"', '').replace('\n', '')
-                if entity_classname in move_criteria:
-                    flag = True
-                else:
-                    continue
-            if flag is True and re.match('\t\"origin\" \".*?\"', row):
-                move_entities_dict[entity_id] = row.split('\" \"')[1].replace('\"', '').replace('\n', '')
-                flag = False
-
-
-def check_coordinate():
-    global move_coordinate
-    if move_checkbutton_flag.get():
-        temp_coordinates = page_first.coordinate_box.get()
-        if re.fullmatch('^(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?$', temp_coordinates):
-            move_coordinate = re.sub('[^0-9.-]+', ' ', temp_coordinates)
-            return True
-        else:
-            return False
-
-
-def do_obfuscate():
-    if vmf_path == '':
-        messagebox.showerror('错误', '请选择文件！')
-        return
-    if move_checkbutton_flag.get() and not check_coordinate():
-        messagebox.showerror('错误', '不合法的地图坐标！')
-        return
-    if messagebox.askquestion('确认', '确认要混淆vmf文件吗？\n将会覆盖源文件并创建.bak备份文件！') == 'yes':
-        edit_file()
-
-
-def select_script_file():
-    global script_file_path_list
-    script_file_path_list = tkinter.filedialog.askopenfilenames(filetypes=[('NUT File', '*.nut')])
-    script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
-
-
-def edit_file():
-    file_path = vmf_path.replace('\\', '/')
-    parse(open(file_path, 'r', -1, 'utf-8'))
-    try:
-        os.rename(file_path, '%s.bak' % file_path)
-    except OSError:
-        if messagebox.askquestion('确认', '检测到.bak备份文件！\n若继续则会删除该备份文件！\n是否继续？') == 'yes':
-            os.remove('%s.bak' % file_path)
-            os.rename(file_path, '%s.bak' % file_path)
-        else:
-            return
-    with open('%s.bak' % file_path, 'r', -1, 'utf-8') as old_file, open(file_path, 'w', -1, 'utf-8') as new_file:
-        replace_string(old_file, new_file, file_path)
-
-
-def is_in_blacklist(row):
-    for blacklist_item in blacklist_list:
-        if row.startswith(blacklist_item):
-            return False
-    return True
-
-
-def parse(file):
-    if move_checkbutton_flag.get():
-        move_entities()
-    for row in file:
-        if '*' in row:
-            blacklist_list.append(row.split('*')[0].split('\"')[-1].split('')[-1])
-        if re.findall('\"targetname\" \".*?\"', row):
-            row = row.split("\" \"")[1][:-2]
-            if is_in_blacklist(row):
-                entities_dict[row] = random_string()
-
-
-def random_string():
-    letters = 'abcedfghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    numbers = '0123456789'
-    special_character = '#$%_-.+='
-    string = random.sample(letters + numbers + special_character, 16)
-    return ''.join(string)
-
-
-def replace_string(old_file, new_file, file_path):
-    flag = False
-    for row in old_file:
-        if re.search("\"[A-Za-z0-9]+\" \"", row):
-            criteria = re.search("\"[A-Za-z0-9]+\" \"", row).group()[1:-3]
-            if criteria in replace_criteria:
-                for item in entities_dict.items():
-                    row = row.replace('\"' + criteria + '\" \"' + item[0] + '\"', '\"' + criteria + '\" \"' + item[1] + '\"')
-        if re.search("[A-Za-z0-9]+", row):
-            for item in entities_dict.items():
-                row = row.replace(item[0] + '', item[1] + '')
-        if flag is False and re.match('\t\"id\" \"[0-9]*\"', row):
-            entity_id = row.split('\" \"')[1].replace('\"', '').replace('\n', '')
-            if entity_id in move_entities_dict.keys():
-                flag = True
-            else:
-                continue
-        if flag is True and re.match('\t\"origin\" \".*?\"', row):
-            row = '\t\"origin\" \"%s\"\n' % move_coordinate
-            flag = False
-        new_file.write(row)
-    if log_checkbutton_flag.get():
-        with open('%s.log' % file_path, 'w', -1, 'utf-8') as log_file:
-            for item in entities_dict.items():
-                log_file.write('%s -> %s\n' % (item[0], item[1]))
-            for item in list(set(blacklist_list)):
-                log_file.write('%s\n' % item)
-            log_file.write('!%s' % time.strftime('%Y-%m-%d %H:%M:%S'))
-    messagebox.showinfo('提示', 'vmf已混淆完成！\n.bak备份文件已创建！')
-
+        if row.startswith('script_file_path_list ='):
+            if row != 'script_file_path_list = ':
+                for path in row.split(' = ')[1].split(' \x1b '):
+                    if path != '':
+                        script_file_path_list.append(path)
+                script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
 
 atexit.register(save_settings_before_exit)
-
-
 window.mainloop()
