@@ -154,19 +154,21 @@ def choose_move_entity_type():
     index_list = [0, 0]
     move_entity_window = tkinter.Toplevel(window)
     move_entity_window.title('设置点实体类型白名单')
-    move_entity_window.geometry('1000x600')
+    move_entity_window.geometry('1120x632')
     move_entity_window.resizable(False, False)
     move_entity_window.focus_force()
     window.attributes('-disabled', True)
     page_first.move_button.configure(state='disabled')
+    move_entity_window.move_frame = tkinter.LabelFrame(move_entity_window, text='设置类型', font=('DengXian', 10))
+    move_entity_window.move_frame.place(relx=0.01, rely=0.01, relwidth=0.88, relheight=0.98)
 
     def destroy_window():
         move_entity_window.destroy()
 
-    ttk.Button(move_entity_window, text='保存', command=lambda: destroy_window(), width=10).grid(row=24, column=3, sticky='e')
+    ttk.Button(move_entity_window, text='保存', command=lambda: destroy_window(), width=10).place(relx=0.9045, rely=0.9)
     for name in move_criteria.items():
-        if index_list[0] <= 25:
-            ttk.Checkbutton(move_entity_window, text=name[0], variable=name[1]).grid(row=index_list[0], column=index_list[1], sticky='w')
+        if index_list[0] <= 23:
+            ttk.Checkbutton(move_entity_window.move_frame, text=name[0], variable=name[1]).grid(row=index_list[0], column=index_list[1], sticky='w', padx=1, pady=1)
             index_list[0] += 1
         else:
             index_list[0] = 0
@@ -188,10 +190,46 @@ def check_coordinate():
             return False
 
 
-def select_file(selection_index):
+def choose_script_file():
+    script_file_window = tkinter.Toplevel(window)
+    script_file_window.title('选择脚本文件')
+    script_file_window.geometry('1000x600')
+    script_file_window.resizable(False, False)
+    script_file_window.focus_force()
+    window.attributes('-disabled', True)
+    page_first.script_select_button.configure(state='disabled')
+    script_file_window.file_frame = tkinter.LabelFrame(script_file_window, text='选择文件', font=('DengXian', 10))
+    script_file_window.file_frame.place(relx=0.01, rely=0.01, relwidth=0.86, relheight=0.98)
+    script_file_window.scrollbar_v = tkinter.Scrollbar(script_file_window.file_frame)
+    script_file_window.scrollbar_v.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+    script_file_window.scrollbar_h = tkinter.Scrollbar(script_file_window.file_frame, orient='horizontal')
+    script_file_window.scrollbar_h.pack(side=tkinter.BOTTOM, fill=tkinter.X)
+    script_file_window.text_box = tkinter.Text(script_file_window.file_frame, font=('Calibri', 12), wrap='none')
+    script_file_window.text_box.pack(expand=tkinter.YES, fill=tkinter.BOTH)
+    script_file_window.text_box.configure(xscrollcommand=script_file_window.scrollbar_h.set)
+    script_file_window.text_box.configure(yscrollcommand=script_file_window.scrollbar_v.set)
+    script_file_window.scrollbar_v.configure(command=script_file_window.text_box.yview)
+    script_file_window.scrollbar_h.configure(command=script_file_window.text_box.xview)
+    for script_path in script_file_path_list:
+        script_file_window.text_box.insert('insert', '%s\n' % script_path)
+    script_file_window.text_box.configure(state='disabled')
+
+    def destroy_window():
+        script_file_window.destroy()
+
+    ttk.Button(script_file_window, text='选择文件', command=lambda: select_file(3, script_file_window), width=10).place(relx=0.89, rely=0.83)
+    ttk.Button(script_file_window, text='保存', command=lambda: destroy_window(), width=10).place(relx=0.89, rely=0.9)
+    page_first.script_select_button.wait_window(script_file_window)
+    window.attributes('-disabled', False)
+    page_first.script_select_button.configure(state='normal')
+    window.focus_force()
+
+
+def select_file(selection_index, script_file_window):
     global vmf_path
     global dict_path
     global game_path
+    global script_file_path_list
     match selection_index:
         case 0:
             vmf_path = tkinter.filedialog.askopenfilename(filetypes=[('Valve Map Format', '*.vmf')])
@@ -211,6 +249,15 @@ def select_file(selection_index):
             page_options.game_box.delete(0, 100000)
             page_options.game_box.insert(0, game_path)
             page_options.game_box.configure(state='readonly')
+        case 3:
+            script_file_path_list = tkinter.filedialog.askopenfilenames(filetypes=[('NUT File', '*.nut')])
+            script_file_window.text_box.configure(state='normal')
+            script_file_window.text_box.delete('1.0', '100000.0')
+            for script_path in script_file_path_list:
+                script_file_window.text_box.insert('insert', '%s\n' % script_path)
+            script_file_window.text_box.configure(state='disabled')
+            script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
+            script_file_window.focus_force()
 
 
 def edit_script():
@@ -255,12 +302,6 @@ def do_obfuscate():
         return
     if messagebox.askquestion('确认', '确认要混淆vmf文件吗？\n将会覆盖源文件并创建.bak备份文件！') == 'yes':
         edit_file()
-
-
-def select_script_file():
-    global script_file_path_list
-    script_file_path_list = tkinter.filedialog.askopenfilenames(filetypes=[('NUT File', '*.nut')])
-    script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
 
 
 def edit_file():
@@ -347,8 +388,8 @@ page_first.move_button.grid(column=2, row=0, padx=5)
 page_first.script_checkbutton = ttk.Checkbutton(page_first.option_frame, text='同时对指定脚本文件进行混淆:', command=lambda: update_flags(), variable=script_checkbutton_flag)
 page_first.script_checkbutton.grid(column=0, row=1, padx=5, pady=5, sticky='w')
 page_first.text_third = ttk.Label(page_first.option_frame, textvariable=script_string_var)
-page_first.text_third.grid(column=1, row=1, padx=5, pady=5, sticky='w')
-page_first.script_select_button = ttk.Button(page_first.option_frame, text='选择脚本文件', command=lambda: select_script_file(), width=15, state='disabled')
+page_first.text_third.grid(column=1, row=1, padx=5, pady=5, sticky='e')
+page_first.script_select_button = ttk.Button(page_first.option_frame, text='选择脚本文件', command=lambda: choose_script_file(), width=15, state='disabled')
 page_first.script_select_button.grid(column=2, row=1, padx=5, pady=5)
 page_first.log_checkbutton = ttk.Checkbutton(page_first.option_frame, text='保存混淆字典', variable=log_checkbutton_flag)
 page_first.log_checkbutton.grid(column=0, row=2, padx=5, pady=5, sticky='w')
@@ -366,17 +407,17 @@ page_options.option_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0
 ttk.Label(page_options.option_frame, text='vmf文件路径：').place(relx=0.01, rely=0.05)
 page_options.vmf_box = ttk.Entry(page_options.option_frame, width=89, state='readonly')
 page_options.vmf_box.place(relx=0.155, rely=0.045)
-ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(0), width=9).place(relx=0.88, rely=0.036)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(0, window), width=9).place(relx=0.88, rely=0.036)
 
 ttk.Label(page_options.option_frame, text='混淆字典路径：').place(relx=0.01, rely=0.2)
 page_options.dict_box = ttk.Entry(page_options.option_frame, width=89, state='readonly')
 page_options.dict_box.place(relx=0.155, rely=0.195)
-ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(1), width=9).place(relx=0.88, rely=0.186)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(1, window), width=9).place(relx=0.88, rely=0.186)
 
 ttk.Label(page_options.option_frame, text='游戏本体路径：').place(relx=0.01, rely=0.35)
 page_options.game_box = ttk.Entry(page_options.option_frame, width=89, state='readonly')
 page_options.game_box.place(relx=0.155, rely=0.345)
-ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(2), width=9).place(relx=0.88, rely=0.336)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(2, window), width=9).place(relx=0.88, rely=0.336)
 
 page_update.update_frame = tkinter.LabelFrame(page_update, text='当前版本：%s' % __version__, font=('DengXian', 10))
 page_update.update_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.98)
