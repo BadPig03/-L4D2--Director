@@ -1,10 +1,10 @@
 import atexit
-import random
 import re
 import os
 import tkinter
 import time
 import downloader
+import utils
 from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
@@ -16,7 +16,7 @@ if __name__ != '__main__':
 
 window = tkinter.Tk()
 window.title('Director by ty')
-window.geometry('800x600')
+window.geometry('1280x720')
 window.resizable(False, False)
 window.configure(bg='white')
 window.iconphoto(True, tkinter.PhotoImage(file='icon_small.png'))
@@ -61,14 +61,24 @@ move_criteria = {'ai_speechfilter': tkinter.IntVar(value=1), 'ambient_music': tk
                  'point_surroundtest': tkinter.IntVar(value=1), 'point_template': tkinter.IntVar(value=1), 'point_velocitysensor': tkinter.IntVar(value=1), 'postprocess_controller': tkinter.IntVar(value=1),
                  'shadow_control': tkinter.IntVar(value=1), 'sound_mix_layer': tkinter.IntVar(value=1), 'tanktrain_ai': tkinter.IntVar(value=1), 'target_changegravity': tkinter.IntVar(value=1), 'vgui_screen': tkinter.IntVar(value=1),
                  'vgui_slideshow_display': tkinter.IntVar(value=1), 'water_lod_control': tkinter.IntVar(value=1)}
+rescue_text = {'msg': '', 'stage_number': '0'}
+
 move_checkbutton_flag = tkinter.IntVar()
 script_checkbutton_flag = tkinter.IntVar()
 log_checkbutton_flag = tkinter.IntVar()
+wildcard_checkbutton_flag = tkinter.IntVar()
+msg_checkbutton_flag = tkinter.IntVar()
+prohibit_bosses_checkbutton_flag = tkinter.IntVar()
+update_rescue_stage_flag = False
 
 entities_dict = {}
 move_entities_dict = {}
+rescue_value_dict = {}
+rescue_combobox_list = {}
+rescue_entry_list = {}
 blacklist_list = []
 script_file_path_list = []
+rescue_type_list = ['PANIC', 'TANK', 'DELAY', 'SCRIPTED']
 
 script_string_var = tkinter.StringVar()
 script_string_var.set('')
@@ -76,11 +86,13 @@ move_coordinate = ''
 vmf_path = ''
 dict_path = ''
 game_path = ''
+rescue_path = ''
 
 notebook = ttk.Notebook(window)
 page_first = tkinter.Frame(window)
 page_second = tkinter.Frame(window)
 page_third = tkinter.Frame(window)
+page_rescue = tkinter.Frame(window)
 page_options = tkinter.Frame(window)
 page_update = tkinter.Frame(window)
 
@@ -97,23 +109,27 @@ style.theme_use('xpnative')
 
 def save_settings_before_exit():
     global script_file_path_list
-    temp_string = ['', '']
+    temp_string = ['', '', '']
     with open(os.getenv('APPDATA') + '\\Director\\director.ini', 'w') as settings_log:
         settings_log.write('move_coordinate = %s\n' % move_coordinate.replace('\n', ''))
         settings_log.write('move_checkbutton_flag = %s\n' % move_checkbutton_flag.get())
         settings_log.write('script_checkbutton_flag = %s\n' % script_checkbutton_flag.get())
         settings_log.write('log_checkbutton_flag = %s\n' % log_checkbutton_flag.get())
+        settings_log.write('wildcard_checkbutton_flag = %s\n' % wildcard_checkbutton_flag.get())
+        settings_log.write('msg_checkbutton_flag = %s\n' % msg_checkbutton_flag.get())
+        settings_log.write('prohibit_bosses_checkbutton_flag = %s\n' % prohibit_bosses_checkbutton_flag.get())
         settings_log.write('vmf_path = %s\n' % vmf_path.replace('\n', ''))
         settings_log.write('dict_path = %s\n' % dict_path.replace('\n', ''))
         settings_log.write('game_path = %s\n' % game_path.replace('\n', ''))
+        settings_log.write('rescue_path = %s\n' % rescue_path.replace('\n', ''))
         settings_log.write('script_file_path_list = ')
         for file_path in script_file_path_list:
-            temp_string[0] += (file_path.replace('\n', '') + ' \x1b ')
-        settings_log.write(temp_string[0].removesuffix(' \x1b ') + '\n')
+            temp_string[1] += (file_path.replace('\n', '') + ' \x1b ')
+        settings_log.write(temp_string[1].removesuffix(' \x1b ') + '\n')
         settings_log.write('move_criteria = ')
         for move_item in move_criteria.items():
-            temp_string[1] += '%s: %s \x1b ' % (move_item[0], move_item[1].get())
-        settings_log.write(temp_string[1].removesuffix(' \x1b '))
+            temp_string[2] += '%s: %s \x1b ' % (move_item[0], move_item[1].get())
+        settings_log.write(temp_string[2].removesuffix(' \x1b '))
 
 
 def manually_update():
@@ -122,12 +138,12 @@ def manually_update():
         return
     if new_version == __version__:
         page_update.update_frame.version_box.configure(state='normal')
-        page_update.update_frame.version_box.delete(0, 100000)
+        page_update.update_frame.version_box.delete(0, tkinter.END)
         page_update.update_frame.version_box.insert(0, 'Director处于最新版本！')
         page_update.update_frame.version_box.configure(state='readonly')
     else:
         page_update.update_frame.version_box.configure(state='normal')
-        page_update.update_frame.version_box.delete(0, 100000)
+        page_update.update_frame.version_box.delete(0, tkinter.END)
         page_update.update_frame.version_box.insert(0, 'Director有新版本可供升级！最新版本号：%s！' % new_version)
         page_update.update_frame.version_box.configure(state='readonly')
 
@@ -229,35 +245,42 @@ def select_file(selection_index, script_file_window):
     global vmf_path
     global dict_path
     global game_path
+    global rescue_path
     global script_file_path_list
     match selection_index:
         case 0:
             vmf_path = tkinter.filedialog.askopenfilename(filetypes=[('Valve Map Format', '*.vmf')])
             page_options.vmf_box.configure(state='normal')
-            page_options.vmf_box.delete(0, 100000)
+            page_options.vmf_box.delete(0, tkinter.END)
             page_options.vmf_box.insert(0, vmf_path)
             page_options.vmf_box.configure(state='readonly')
         case 1:
             dict_path = tkinter.filedialog.askopenfilename(filetypes=[('Director Dict File', '*.dict')])
             page_options.dict_box.configure(state='normal')
-            page_options.dict_box.delete(0, 100000)
+            page_options.dict_box.delete(0, tkinter.END)
             page_options.dict_box.insert(0, dict_path)
             page_options.dict_box.configure(state='readonly')
         case 2:
             game_path = tkinter.filedialog.askopenfilename(filetypes=[('left4dead2.exe', 'left4dead2.exe')])
             page_options.game_box.configure(state='normal')
-            page_options.game_box.delete(0, 100000)
+            page_options.game_box.delete(0, tkinter.END)
             page_options.game_box.insert(0, game_path)
             page_options.game_box.configure(state='readonly')
         case 3:
             script_file_path_list = tkinter.filedialog.askopenfilenames(filetypes=[('NUT File', '*.nut')])
             script_file_window.text_box.configure(state='normal')
-            script_file_window.text_box.delete('1.0', '100000.0')
+            script_file_window.text_box.delete('1.0', 'tkinter.END.0')
             for script_path in script_file_path_list:
                 script_file_window.text_box.insert('insert', '%s\n' % script_path)
             script_file_window.text_box.configure(state='disabled')
             script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
             script_file_window.focus_force()
+        case 4:
+            rescue_path = tkinter.filedialog.askopenfilename(filetypes=[('NUT File', '*_finale.nut')])
+            page_options.rescue_box.configure(state='normal')
+            page_options.rescue_box.delete(0, tkinter.END)
+            page_options.rescue_box.insert(0, rescue_path)
+            page_options.rescue_box.configure(state='readonly')
 
 
 def edit_script():
@@ -291,6 +314,10 @@ def update_flags():
     else:
         page_first.script_select_button.configure(state='disabled')
         script_string_var.set('')
+    if msg_checkbutton_flag.get():
+        page_rescue.msg_button.configure(state='normal')
+    else:
+        page_rescue.msg_button.configure(state='disabled')
 
 
 def do_obfuscate():
@@ -301,32 +328,21 @@ def do_obfuscate():
         messagebox.showerror('错误', '不合法的地图坐标！')
         return
     if messagebox.askquestion('确认', '确认要混淆vmf文件吗？\n将会覆盖源文件并创建.bak备份文件！') == 'yes':
-        edit_file()
-
-
-def edit_file():
-    file_path = vmf_path.replace('\\', '/')
-    parse(open(file_path, 'r', -1, 'utf-8'))
-    try:
-        os.rename(file_path, '%s.bak' % file_path)
-    except OSError:
-        if messagebox.askquestion('确认', '检测到.bak备份文件！\n若继续则会删除该备份文件！\n是否继续？') == 'yes':
-            os.remove('%s.bak' % file_path)
+        file_path = vmf_path.replace('\\', '/')
+        analyze_file(open(file_path, 'r', -1, 'utf-8'))
+        try:
             os.rename(file_path, '%s.bak' % file_path)
-        else:
-            return
-    with open('%s.bak' % file_path, 'r', -1, 'utf-8') as old_file, open(file_path, 'w', -1, 'utf-8') as new_file:
-        replace_string(old_file, new_file, file_path)
+        except OSError:
+            if messagebox.askquestion('确认', '检测到.bak备份文件！\n若继续则会删除该备份文件！\n是否继续？') == 'yes':
+                os.remove('%s.bak' % file_path)
+                os.rename(file_path, '%s.bak' % file_path)
+            else:
+                return
+        with open('%s.bak' % file_path, 'r', -1, 'utf-8') as old_file, open(file_path, 'w', -1, 'utf-8') as new_file:
+            replace_string(old_file, new_file, file_path)
 
 
-def is_in_blacklist(blacklist_row):
-    for blacklist_item in blacklist_list:
-        if blacklist_row.startswith(blacklist_item):
-            return False
-    return True
-
-
-def parse(file):
+def analyze_file(file):
     if move_checkbutton_flag.get():
         move_entities()
     for file_row in file:
@@ -334,16 +350,8 @@ def parse(file):
             blacklist_list.append(file_row.split('*')[0].split('\"')[-1].split('\x1b')[-1])
         if re.findall('\"targetname\" \".*?\"', file_row):
             file_row = file_row.split("\" \"")[1][:-2]
-            if is_in_blacklist(file_row):
-                entities_dict[file_row] = random_string()
-
-
-def random_string():
-    letters = 'abcedfghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    numbers = '0123456789'
-    special_character = '#$%_-.+='
-    string = random.sample(letters + numbers + special_character, 16)
-    return ''.join(string)
+            if utils.is_startswith_in_list(file_row, blacklist_list):
+                entities_dict[file_row] = utils.generate_random_string()
 
 
 def replace_string(old_file, new_file, file_path):
@@ -377,22 +385,122 @@ def replace_string(old_file, new_file, file_path):
     messagebox.showinfo('提示', 'vmf已混淆完成！\n.bak备份文件已创建！')
 
 
+def update_rescue_box():
+    global update_rescue_stage_flag
+    stage_number = rescue_text['stage_number']
+    page_rescue.text_box.configure(state='normal')
+    page_rescue.text_box.delete('1.0', '100000.end')
+    if msg_checkbutton_flag.get():
+        page_rescue.text_box.insert('insert', 'Msg(\"%s\");\n\n' % rescue_text['msg'])
+    page_rescue.text_box.insert('insert', 'ERROR <- -1\nPANIC <- 0\nTANK <- 1\nDELAY <- 2\nSCRIPTED <- 3\n\nDirectorOptions <-\n{\n')
+    if stage_number.isnumeric() and int(stage_number) > 0 and update_rescue_stage_flag:
+        page_rescue.text_box.insert('insert', '\tA_CustomFinale_StageCount = %s\n\n' % stage_number)
+        for index in range(1, int(stage_number)+1):
+            page_rescue.text_box.insert('insert', '\tA_CustomFinale%s = %s\n' % (index, rescue_value_dict[index].split('\x1b')[0]))
+            page_rescue.text_box.insert('insert', '\tA_CustomFinaleValue%s = %s\n\n' % (index, rescue_value_dict[index].split('\x1b')[1]))
+    if prohibit_bosses_checkbutton_flag.get():
+        page_rescue.text_box.insert('insert', '\tProhibitBosses = true\n')
+    page_rescue.text_box.insert('insert', '}\n')
+    page_rescue.text_box.configure(state='disabled')
+
+
+def open_text_window(title_text, size, text, button, dict_type):
+    child_window = tkinter.Toplevel(window)
+    child_window.title(title_text)
+    child_window.geometry(size)
+    child_window.resizable(False, False)
+    child_window.focus_force()
+    window.attributes('-disabled', True)
+    button.configure(state='disabled')
+    ttk.Button(child_window, text='保存', command=lambda: destroy_window(dict_type), width=10).pack(side='bottom', pady=5)
+    child_window.text = tkinter.Label(child_window, text=text, font=('DengXian', 12))
+    child_window.text.place(relx=0.02, rely=0.1)
+    child_window.text_box = ttk.Entry(child_window, width=70, font=('DengXian', 12))
+    child_window.text_box.pack(side='bottom')
+
+    def destroy_window(name):
+        rescue_text[name] = child_window.text_box.get()
+        child_window.destroy()
+
+    button.wait_window(child_window)
+    window.attributes('-disabled', False)
+    button.configure(state='normal')
+    window.focus_force()
+
+
+def open_stage_window():
+    global update_rescue_stage_flag
+    update_rescue_stage_flag = False
+    stage_window = tkinter.Toplevel(window)
+    stage_window.title('Stage详细设置')
+    stage_window.geometry('450x%s' % utils.get_window_y_size(rescue_text['stage_number']))
+    stage_window.resizable(False, False)
+    stage_window.focus_force()
+    window.attributes('-disabled', True)
+    page_rescue.stage_button.configure(state='disabled')
+    ttk.Button(stage_window, text='保存', command=lambda: destroy_window(), width=10).grid(column=1, row=int(rescue_text['stage_number']) + 1, padx=5, pady=5)
+    for index in range(1, int(rescue_text['stage_number']) + 1):
+        tkinter.Label(stage_window, text='Stage %s: ' % str(index).zfill(2), font=('DengXian', 12)).grid(column=0, row=index-1, padx=5, pady=5, sticky='w')
+        combobox = ttk.Combobox(stage_window, width=12, state='readonly', textvariable=tkinter.StringVar())
+        combobox['values'] = rescue_type_list
+        combobox.current(0)
+        combobox.grid(column=1, row=index-1, padx=5, pady=5)
+        entry = ttk.Entry(stage_window, width=30, font=('DengXian', 12))
+        entry.grid(column=2, row=index-1, padx=5, pady=5)
+        rescue_combobox_list[index] = combobox
+        rescue_entry_list[index] = entry
+    if int(rescue_text['stage_number']) >= 16:
+        print("too much!")
+
+    def destroy_window():
+        global update_rescue_stage_flag
+        for _index in range(1, int(rescue_text['stage_number']) + 1):
+            rescue_value_dict[_index] = rescue_combobox_list[_index].get() + '\x1b' + rescue_entry_list[_index].get()
+        stage_window.destroy()
+        update_rescue_stage_flag = True
+
+    page_rescue.stage_button.wait_window(stage_window)
+    window.attributes('-disabled', False)
+    page_rescue.stage_button.configure(state='normal')
+    window.focus_force()
+
+
+def refresh_rescue_window():
+    global update_rescue_stage_flag
+    if page_rescue.stage_box.get() != rescue_text['stage_number'] and update_rescue_stage_flag:
+        rescue_combobox_list.clear()
+        rescue_entry_list.clear()
+        rescue_value_dict.clear()
+        update_rescue_stage_flag = False
+        window.after(110, open_stage_window)
+    rescue_text['stage_number'] = page_rescue.stage_box.get()
+    if rescue_text['stage_number'].isnumeric() and int(rescue_text['stage_number']) > 0:
+        page_rescue.stage_button.configure(state='normal')
+    else:
+        page_rescue.stage_button.configure(state='disable')
+    update_rescue_box()
+    window.after(100, refresh_rescue_window)
+
+
 page_first.option_frame = tkinter.LabelFrame(page_first, text='选项', font=('DengXian', 10))
-page_first.option_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.48)
+page_first.option_frame.place(relx=0.01, rely=0.01, relwidth=0.48, relheight=0.48)
 page_first.move_checkbutton = ttk.Checkbutton(page_first.option_frame, text='将指定点实体移动到指定位置:', command=lambda: update_flags(), variable=move_checkbutton_flag)
 page_first.move_checkbutton.grid(column=0, row=0, padx=5, pady=5, sticky='w')
-page_first.move_box = ttk.Entry(page_first.option_frame, width=57, state='readonly')
+page_first.move_box = ttk.Entry(page_first.option_frame, width=28, state='readonly', font=('Calibri', 10))
 page_first.move_box.grid(column=1, row=0, padx=5, pady=5)
 page_first.move_button = ttk.Button(page_first.option_frame, text='指定实体类型', command=lambda: choose_move_entity_type(), width=15)
 page_first.move_button.grid(column=2, row=0, padx=5)
 page_first.script_checkbutton = ttk.Checkbutton(page_first.option_frame, text='同时对指定脚本文件进行混淆:', command=lambda: update_flags(), variable=script_checkbutton_flag)
 page_first.script_checkbutton.grid(column=0, row=1, padx=5, pady=5, sticky='w')
 page_first.text_third = ttk.Label(page_first.option_frame, textvariable=script_string_var)
-page_first.text_third.grid(column=1, row=1, padx=5, pady=5, sticky='e')
+page_first.text_third.grid(column=1, row=1, padx=5, pady=5, sticky='w')
 page_first.script_select_button = ttk.Button(page_first.option_frame, text='选择脚本文件', command=lambda: choose_script_file(), width=15, state='disabled')
 page_first.script_select_button.grid(column=2, row=1, padx=5, pady=5)
+page_first.wildcard_checkbutton = ttk.Checkbutton(page_first.option_frame, text='启用通配符黑名单', variable=wildcard_checkbutton_flag)
+page_first.wildcard_checkbutton.grid(column=0, row=2, padx=5, pady=5, sticky='w')
+page_first.wildcard_checkbutton.invoke()
 page_first.log_checkbutton = ttk.Checkbutton(page_first.option_frame, text='保存混淆字典', variable=log_checkbutton_flag)
-page_first.log_checkbutton.grid(column=0, row=2, padx=5, pady=5, sticky='w')
+page_first.log_checkbutton.grid(column=0, row=3, padx=5, pady=5, sticky='w')
 page_first.log_checkbutton.invoke()
 page_first.execute_button = ttk.Button(page_first, text='混淆', command=lambda: do_obfuscate(), width=9)
 page_first.execute_button.place(relx=0.8, rely=0.83)
@@ -401,23 +509,54 @@ page_first.test_button.place(relx=0.6, rely=0.83)
 page_first.text_second = tkinter.Label(page_first, text='仅用于求生之路2的vmf文件！', font=('DengXian', 12), fg='red')
 page_first.text_second.place(relx=0.05, rely=0.835)
 
+page_rescue.option_necessary_frame = tkinter.LabelFrame(page_rescue, text='必选设置', font=('DengXian', 10))
+page_rescue.option_necessary_frame.place(relx=0.005, rely=0.005, relwidth=0.24, relheight=0.88)
+ttk.Label(page_rescue.option_necessary_frame, text='Stage数:').grid(column=0, row=0, padx=5, pady=5, sticky='w')
+page_rescue.stage_box = ttk.Entry(page_rescue.option_necessary_frame, width=8)
+page_rescue.stage_box.grid(column=1, row=0, padx=5, pady=5, sticky='w')
+page_rescue.stage_button = ttk.Button(page_rescue.option_necessary_frame, text='详细设置', command=lambda: open_stage_window(), width=8, state='disabled')
+page_rescue.stage_button.grid(column=2, row=0, padx=5, pady=5, sticky='w')
+page_rescue.option_additional_frame = tkinter.LabelFrame(page_rescue, text='额外设置', font=('DengXian', 10))
+page_rescue.option_additional_frame.place(relx=0.255, rely=0.005, relwidth=0.24, relheight=0.88)
+page_rescue.msg_checkbutton = ttk.Checkbutton(page_rescue.option_additional_frame, text='', command=lambda: update_flags(), variable=msg_checkbutton_flag)
+page_rescue.msg_checkbutton.grid(column=0, row=0, padx=5, pady=5, sticky='w')
+page_rescue.msg_button = ttk.Button(page_rescue.option_additional_frame, text='自定义消息设置', command=lambda: open_text_window('自定义消息设置', '600x100', '请输入自定义消息内容：', page_rescue.msg_button, 'msg'), width=15)
+page_rescue.msg_button.place(x=24, y=3)
+page_rescue.prohibit_bosses_checkbutton = ttk.Checkbutton(page_rescue.option_additional_frame, text='禁止Tank与Witch', command=lambda: update_flags(), variable=prohibit_bosses_checkbutton_flag)
+page_rescue.prohibit_bosses_checkbutton.grid(column=0, row=1, padx=5, pady=5, sticky='w')
+page_rescue.preview_frame = tkinter.LabelFrame(page_rescue, text='预览', font=('DengXian', 10))
+page_rescue.preview_frame.place(relx=0.505, rely=0.005, relwidth=0.49, relheight=0.98)
+page_rescue.scrollbar_v = tkinter.Scrollbar(page_rescue.preview_frame)
+page_rescue.scrollbar_v.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+page_rescue.scrollbar_h = tkinter.Scrollbar(page_rescue.preview_frame, orient='horizontal')
+page_rescue.scrollbar_h.pack(side=tkinter.BOTTOM, fill=tkinter.X)
+page_rescue.text_box = tkinter.Text(page_rescue.preview_frame, font=('DengXian', 12), wrap='none')
+page_rescue.text_box.pack(expand=tkinter.YES, fill=tkinter.BOTH)
+page_rescue.text_box.configure(xscrollcommand=page_rescue.scrollbar_h.set)
+page_rescue.text_box.configure(yscrollcommand=page_rescue.scrollbar_v.set)
+page_rescue.scrollbar_v.configure(command=page_rescue.text_box.yview)
+page_rescue.scrollbar_h.configure(command=page_rescue.text_box.xview)
+ttk.Button(page_rescue, text='更新预览', command=lambda: update_rescue_box(), width=9).place(relx=0.25, rely=0.94, anchor='center')
+
+
 page_options.option_frame = tkinter.LabelFrame(page_options, text='文件路径', font=('DengXian', 10))
 page_options.option_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.48)
-
-ttk.Label(page_options.option_frame, text='vmf文件路径：').place(relx=0.01, rely=0.05)
-page_options.vmf_box = ttk.Entry(page_options.option_frame, width=89, state='readonly')
-page_options.vmf_box.place(relx=0.155, rely=0.045)
-ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(0, window), width=9).place(relx=0.88, rely=0.036)
-
-ttk.Label(page_options.option_frame, text='混淆字典路径：').place(relx=0.01, rely=0.2)
-page_options.dict_box = ttk.Entry(page_options.option_frame, width=89, state='readonly')
-page_options.dict_box.place(relx=0.155, rely=0.195)
-ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(1, window), width=9).place(relx=0.88, rely=0.186)
-
-ttk.Label(page_options.option_frame, text='游戏本体路径：').place(relx=0.01, rely=0.35)
-page_options.game_box = ttk.Entry(page_options.option_frame, width=89, state='readonly')
-page_options.game_box.place(relx=0.155, rely=0.345)
-ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(2, window), width=9).place(relx=0.88, rely=0.336)
+ttk.Label(page_options.option_frame, text='vmf文件路径：').grid(column=0, row=0, padx=5, pady=6, sticky='w')
+page_options.vmf_box = ttk.Entry(page_options.option_frame, width=165, state='readonly')
+page_options.vmf_box.grid(column=1, row=0, padx=5, pady=10)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(0, window), width=9).grid(column=2, row=0, padx=5, pady=6)
+ttk.Label(page_options.option_frame, text='混淆字典路径：').grid(column=0, row=1, padx=5, pady=6, sticky='w')
+page_options.dict_box = ttk.Entry(page_options.option_frame, width=165, state='readonly')
+page_options.dict_box.grid(column=1, row=1, padx=5, pady=6)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(1, window), width=9).grid(column=2, row=1, padx=5, pady=6)
+ttk.Label(page_options.option_frame, text='游戏本体路径：').grid(column=0, row=2, padx=5, pady=6, sticky='w')
+page_options.game_box = ttk.Entry(page_options.option_frame, width=165, state='readonly')
+page_options.game_box.grid(column=1, row=2, padx=5, pady=6)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(2, window), width=9).grid(column=2, row=2, padx=5, pady=6)
+ttk.Label(page_options.option_frame, text='救援脚本路径：').grid(column=0, row=3, padx=5, pady=6, sticky='w')
+page_options.rescue_box = ttk.Entry(page_options.option_frame, width=165, state='readonly')
+page_options.rescue_box.grid(column=1, row=3, padx=5, pady=6)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(4, window), width=9).grid(column=2, row=3, padx=5, pady=6)
 
 page_update.update_frame = tkinter.LabelFrame(page_update, text='当前版本：%s' % __version__, font=('DengXian', 10))
 page_update.update_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.98)
@@ -426,13 +565,14 @@ page_update.update_frame.version_box = ttk.Entry(page_update.update_frame, width
 page_update.update_frame.version_box.grid(column=1, row=1, pady=5)
 ttk.Button(page_update.update_frame, text='手动更新', state='disabled', command=lambda: manually_update(), width=9).grid(column=2, row=1, padx=5, pady=5)
 
-
 notebook.add(page_first, text='Targetname混淆')
 notebook.add(page_second, text='贴图')
 notebook.add(page_third, text='脚本')
+notebook.add(page_rescue, text='自定义救援')
 notebook.add(page_options, text='路径设置')
 notebook.add(page_update, text='版本更新')
 notebook.pack(padx=10, pady=5, fill='both', expand=True)
+
 
 with open(os.getenv('APPDATA') + '\\Director\\director.ini', 'a+') as director_settings:
     director_settings.seek(0)
@@ -451,6 +591,15 @@ with open(os.getenv('APPDATA') + '\\Director\\director.ini', 'a+') as director_s
         if row.startswith('log_checkbutton_flag ='):
             if int(row.split(' = ')[1]) == 0:
                 page_first.log_checkbutton.invoke()
+        if row.startswith('wildcard_checkbutton_flag ='):
+            if int(row.split(' = ')[1]) == 0:
+                page_first.wildcard_checkbutton.invoke()
+        if row.startswith('msg_checkbutton_flag ='):
+            if int(row.split(' = ')[1]) == 1:
+                page_rescue.msg_checkbutton.invoke()
+        if row.startswith('prohibit_bosses_checkbutton_flag ='):
+            if int(row.split(' = ')[1]) == 1:
+                page_rescue.prohibit_bosses_checkbutton.invoke()
         if row.startswith('vmf_path ='):
             vmf_path = row.split(' = ')[1].replace('\n', '')
             page_options.vmf_box.configure(state='normal')
@@ -466,6 +615,11 @@ with open(os.getenv('APPDATA') + '\\Director\\director.ini', 'a+') as director_s
             page_options.game_box.configure(state='normal')
             page_options.game_box.insert(0, game_path)
             page_options.game_box.configure(state='readonly')
+        if row.startswith('rescue_path ='):
+            rescue_path = row.split(' = ')[1].replace('\n', '')
+            page_options.rescue_box.configure(state='normal')
+            page_options.rescue_box.insert(0, rescue_path)
+            page_options.rescue_box.configure(state='readonly')
         if row.startswith('script_file_path_list ='):
             if row != 'script_file_path_list = \n':
                 for path in row.split(' = ')[1].split(' \x1b '):
@@ -475,6 +629,9 @@ with open(os.getenv('APPDATA') + '\\Director\\director.ini', 'a+') as director_s
         if row.startswith('move_criteria = '):
             for move_list in row.split(' = ')[1].split(' \x1b '):
                 move_criteria[move_list.split(': ')[0]] = tkinter.IntVar(value=int(move_list.split(': ')[1]))
+        update_flags()
+
 
 atexit.register(save_settings_before_exit)
+window.after(100, refresh_rescue_window)
 window.mainloop()
