@@ -1,3 +1,4 @@
+import os
 import random
 
 
@@ -21,3 +22,39 @@ def get_window_y_size(num):
     if number >= 563:
         number = 563
     return number
+
+
+def is_text_valid(stage_type, text):
+    match stage_type:
+        case 'PANIC':
+            if not (text.isnumeric() and int(text) > 0):
+                return False
+        case 'TANK':
+            if not (text.isnumeric() and int(text) > 0):
+                return False
+        case 'DELAY':
+            if not (text.isnumeric() and int(text) > 0):
+                return False
+        case 'SCRIPTED':
+            if text == '':
+                return False
+        case 'SETUP':
+            if not (text.isnumeric() and int(text) > 0):
+                return False
+        case 'ESCAPE':
+            if text != '':
+                return False
+        case 'RESULTS':
+            if text != '':
+                return False
+        case 'NONE':
+            if text != '':
+                return False
+    return True
+
+
+def standardized_scripted(text):
+    text = text.replace('\"', '')
+    if '.' in text:
+        text = text.split('.')[0]
+    return '\"' + text + '\"'
