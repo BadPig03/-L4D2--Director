@@ -18,9 +18,6 @@ import utils
 class Window(tkinter.Tk):
     def __init__(self):
         tkinter.Tk.__init__(self)
-        self.initialize()
-
-    def initialize(self):
         self.title('Director by ty')
         self.geometry('1280x720')
         self.resizable(False, False)
@@ -35,17 +32,14 @@ class Window(tkinter.Tk):
 class EntityWindow(tkinter.Toplevel):
     def __init__(self):
         tkinter.Toplevel.__init__(self)
-        self.move_frame = tkinter.LabelFrame(self, text='设置类型', font=('DengXian', 10))
-        self.move_frame.place(relx=0.01, rely=0.01, relwidth=0.88, relheight=0.98)
-        self.initialize()
-
-    def initialize(self):
-        index_list = [0, 0]
         self.title('设置点实体类型白名单')
         self.geometry('1120x632')
         self.resizable(False, False)
         self.focus_force()
         app.attributes('-disabled', True)
+        self.move_frame = tkinter.LabelFrame(self, text='设置类型', font=('DengXian', 10))
+        self.move_frame.place(relx=0.01, rely=0.01, relwidth=0.88, relheight=0.98)
+        index_list = [0, 0]
         page_targetname.move_button.configure(state='disabled')
         ttk.Button(self, text='保存', command=lambda: self.destroy(), width=10).place(relx=0.9045, rely=0.9)
         for name in move_criteria.items():
@@ -65,6 +59,11 @@ class EntityWindow(tkinter.Toplevel):
 class ScriptWindow(tkinter.Toplevel):
     def __init__(self):
         tkinter.Toplevel.__init__(self)
+        self.title('选择脚本文件')
+        self.geometry('1000x600')
+        self.resizable(False, False)
+        self.focus_force()
+        app.attributes('-disabled', True)
         self.file_frame = tkinter.LabelFrame(self, text='选择文件', font=('DengXian', 10))
         self.file_frame.place(relx=0.01, rely=0.01, relwidth=0.86, relheight=0.98)
         self.scrollbar_v = tkinter.Scrollbar(self.file_frame)
@@ -80,20 +79,91 @@ class ScriptWindow(tkinter.Toplevel):
         for script_path in script_file_path_list:
             self.text_box.insert('insert', '%s\n' % script_path)
         self.text_box.configure(state='disabled')
-        self.initialize()
-
-    def initialize(self):
-        self.title('选择脚本文件')
-        self.geometry('1000x600')
-        self.resizable(False, False)
-        self.focus_force()
-        app.attributes('-disabled', True)
         page_targetname.script_select_button.configure(state='disabled')
         ttk.Button(self, text='选择文件', command=lambda: select_file(3), width=10).place(relx=0.89, rely=0.83)
         ttk.Button(self, text='保存', command=lambda: self.destroy(), width=10).place(relx=0.89, rely=0.9)
         page_targetname.script_select_button.wait_window(self)
         app.attributes('-disabled', False)
         page_targetname.script_select_button.configure(state='normal')
+        app.focus_force()
+
+
+# 定义救援脚本输入文本的Toplevel类
+class ScriptInputWindow(tkinter.Toplevel):
+    def __init__(self, title_text, size, text, button, dict_type):
+        tkinter.Toplevel.__init__(self)
+
+        def destroy_window(name):
+            rescue_text[name] = self.text_box.get()
+            self.destroy()
+
+        self.title(title_text)
+        self.geometry(size)
+        self.resizable(False, False)
+        self.focus_force()
+        app.attributes('-disabled', True)
+        button.configure(state='disabled')
+        tkinter.Label(self, text=text, font=('DengXian', 12)).place(relx=0.02, rely=0.1)
+        self.text_box = ttk.Entry(self, width=70, font=('DengXian', 12))
+        self.text_box.pack(side='bottom', pady=5)
+        ttk.Button(self, text='保存', command=lambda: destroy_window(dict_type), width=10).pack(side='bottom', pady=5)
+        button.wait_window(self)
+        app.attributes('-disabled', False)
+        button.configure(state='normal')
+        app.focus_force()
+
+
+# 定义选择救援脚本阶段的Toplevel类
+class StageWindow(tkinter.Toplevel):
+    def __init__(self):
+        tkinter.Toplevel.__init__(self)
+
+        def anti_closing():
+            pass
+
+        def destroy_window():
+            global update_rescue_stage_flag
+            for list_index in range(1, int(rescue_text['stage_number']) + 1):
+                if utils.is_text_valid(rescue_combobox_list[list_index].get(), rescue_entry_list[list_index].get()):
+                    if rescue_combobox_list[list_index].get() == 'SCRIPTED':
+                        rescue_value_dict[list_index] = rescue_combobox_list[list_index].get() + '\x1b' + utils.standardized_scripted(rescue_entry_list[list_index].get())
+                    else:
+                        rescue_value_dict[list_index] = rescue_combobox_list[list_index].get() + '\x1b' + rescue_entry_list[list_index].get()
+                else:
+                    messagebox.showerror('错误', '不合理的内容！')
+                    self.focus_force()
+                    return
+            self.destroy()
+            app.after(10, update_rescue_box)
+            update_rescue_stage_flag = True
+
+        if int(rescue_text['stage_number']) >= 16:
+            return
+        rescue_combobox_list.clear()
+        rescue_entry_list.clear()
+        rescue_value_dict.clear()
+        update_rescue_stage_flag = False
+        self.title('救援阶段详细设置')
+        self.geometry('450x%s' % utils.get_window_y_size(rescue_text['stage_number']))
+        self.resizable(False, False)
+        self.focus_force()
+        app.attributes('-disabled', True)
+        page_rescue.stage_button.configure(state='disabled')
+        ttk.Button(self, text='保存', command=lambda: destroy_window(), width=10).grid(columnspan=3, column=0, row=int(rescue_text['stage_number']) + 1, padx=5, pady=5)
+        for index in range(1, int(rescue_text['stage_number']) + 1):
+            tkinter.Label(self, text='阶段 %s: ' % str(index).zfill(2), font=('DengXian', 12)).grid(column=0, row=index - 1, padx=5, pady=5, sticky='w')
+            combobox = ttk.Combobox(self, width=12, state='readonly', textvariable=tkinter.StringVar())
+            combobox['values'] = tuples.rescue_type_list
+            combobox.current(0)
+            combobox.grid(column=1, row=index - 1, padx=5, pady=5)
+            entry = ttk.Entry(self, width=31, font=('DengXian', 12))
+            entry.grid(column=2, row=index - 1, padx=5, pady=5)
+            rescue_combobox_list[index] = combobox
+            rescue_entry_list[index] = entry
+        self.protocol('WM_DELETE_WINDOW', anti_closing)
+        page_rescue.stage_button.wait_window(self)
+        app.attributes('-disabled', False)
+        page_rescue.stage_button.configure(state='normal')
         app.focus_force()
 
 
@@ -407,6 +477,8 @@ def generate_obfuscate_targetname(file):
                 entities_dict[file_row] = utils.generate_random_string()
 
 
+# 作用：更新救援预览内容
+# 注意：目前为手动更新
 def update_rescue_box():
     global update_rescue_stage_flag
     stage_number = rescue_text['stage_number']
@@ -426,83 +498,8 @@ def update_rescue_box():
     page_rescue.text_box.configure(state='disabled')
 
 
-def open_text_window(title_text, size, text, button, dict_type):
-    child_window = tkinter.Toplevel(app)
-    child_window.title(title_text)
-    child_window.geometry(size)
-    child_window.resizable(False, False)
-    child_window.focus_force()
-    app.attributes('-disabled', True)
-    button.configure(state='disabled')
-    ttk.Button(child_window, text='保存', command=lambda: destroy_window(dict_type), width=10).pack(side='bottom', pady=5)
-    child_window.text = tkinter.Label(child_window, text=text, font=('DengXian', 12))
-    child_window.text.place(relx=0.02, rely=0.1)
-    child_window.text_box = ttk.Entry(child_window, width=70, font=('DengXian', 12))
-    child_window.text_box.pack(side='bottom')
-
-    def destroy_window(name):
-        rescue_text[name] = child_window.text_box.get()
-        child_window.destroy()
-
-    button.wait_window(child_window)
-    app.attributes('-disabled', False)
-    button.configure(state='normal')
-    app.focus_force()
-
-
-def open_stage_window():
-    global update_rescue_stage_flag
-    if int(rescue_text['stage_number']) >= 16:
-        return
-    rescue_combobox_list.clear()
-    rescue_entry_list.clear()
-    rescue_value_dict.clear()
-    update_rescue_stage_flag = False
-    stage_window = tkinter.Toplevel(app)
-    stage_window.title('救援阶段详细设置')
-    stage_window.geometry('450x%s' % utils.get_window_y_size(rescue_text['stage_number']))
-    stage_window.resizable(False, False)
-    stage_window.focus_force()
-    app.attributes('-disabled', True)
-    page_rescue.stage_button.configure(state='disabled')
-    ttk.Button(stage_window, text='保存', command=lambda: destroy_window(), width=10).grid(columnspan=3, column=0, row=int(rescue_text['stage_number']) + 1, padx=5, pady=5)
-    for index in range(1, int(rescue_text['stage_number']) + 1):
-        tkinter.Label(stage_window, text='阶段 %s: ' % str(index).zfill(2), font=('DengXian', 12)).grid(column=0, row=index - 1, padx=5, pady=5, sticky='w')
-        combobox = ttk.Combobox(stage_window, width=12, state='readonly', textvariable=tkinter.StringVar())
-        combobox['values'] = tuples.rescue_type_list
-        combobox.current(0)
-        combobox.grid(column=1, row=index - 1, padx=5, pady=5)
-        entry = ttk.Entry(stage_window, width=31, font=('DengXian', 12))
-        entry.grid(column=2, row=index - 1, padx=5, pady=5)
-        rescue_combobox_list[index] = combobox
-        rescue_entry_list[index] = entry
-
-    def anti_closing():
-        pass
-
-    def destroy_window():
-        global update_rescue_stage_flag
-        for _index in range(1, int(rescue_text['stage_number']) + 1):
-            if utils.is_text_valid(rescue_combobox_list[_index].get(), rescue_entry_list[_index].get()):
-                if rescue_combobox_list[_index].get() == 'SCRIPTED':
-                    rescue_value_dict[_index] = rescue_combobox_list[_index].get() + '\x1b' + utils.standardized_scripted(rescue_entry_list[_index].get())
-                else:
-                    rescue_value_dict[_index] = rescue_combobox_list[_index].get() + '\x1b' + rescue_entry_list[_index].get()
-            else:
-                messagebox.showerror('错误', '不合法的内容！')
-                stage_window.focus_force()
-                return
-        stage_window.destroy()
-        app.after(10, update_rescue_box)
-        update_rescue_stage_flag = True
-
-    stage_window.protocol('WM_DELETE_WINDOW', anti_closing)
-    page_rescue.stage_button.wait_window(stage_window)
-    app.attributes('-disabled', False)
-    page_rescue.stage_button.configure(state='normal')
-    app.focus_force()
-
-
+# 作用：自动更新救援预览窗口的内容
+# 注意：0.1s递归己函数
 def auto_refresh_rescue_window():
     global update_rescue_stage_flag
     rescue_text['stage_number'] = page_rescue.stage_box.get()
@@ -513,6 +510,8 @@ def auto_refresh_rescue_window():
     app.after(100, auto_refresh_rescue_window)
 
 
+# 作用：批量编译qc文件
+# 注意：使用多线程方法编译
 def walk_through_qc_files(raw_path, mdl_path):
     gameinfo_path = mdl_path.removesuffix('bin/studiomdl.exe') + 'left4dead2/'
     for dir_path, dir_names, file_names in os.walk(raw_path):
@@ -521,6 +520,8 @@ def walk_through_qc_files(raw_path, mdl_path):
                 _thread.start_new_thread(os.system, ('""%s" -game "%s" -nop4 "%s/%s""' % (mdl_path, gameinfo_path, dir_path, file_name),))
 
 
+# 作用：获取Director最新版本并加以比较，输出更新结果
+# 注意：若一直尝试获取，会导致短时间被禁止访问
 def update_version_check():
     new_version = downloader.get_latest_version()
     if new_version is None:
@@ -537,6 +538,7 @@ def update_version_check():
         page_update.update_frame.version_box.configure(state='readonly')
 
 
+# 定义全部tkinter组件
 page_targetname.option_frame = tkinter.LabelFrame(page_targetname, text='选项', font=('DengXian', 10))
 page_targetname.option_frame.place(relx=0.01, rely=0.01, relwidth=0.48, relheight=0.48)
 page_targetname.move_checkbutton = ttk.Checkbutton(page_targetname.option_frame, text='将指定点实体移动到指定位置:', command=lambda: update_flags(), variable=move_checkbutton_flag)
@@ -584,14 +586,14 @@ page_rescue.option_necessary_frame.place(relx=0.005, rely=0.005, relwidth=0.24, 
 ttk.Label(page_rescue.option_necessary_frame, text='救援阶段数:').grid(column=0, row=0, padx=5, pady=5, sticky='w')
 page_rescue.stage_box = ttk.Entry(page_rescue.option_necessary_frame, width=6)
 page_rescue.stage_box.grid(column=1, row=0, padx=5, pady=5, sticky='w')
-page_rescue.stage_button = ttk.Button(page_rescue.option_necessary_frame, text='详细设置', command=lambda: open_stage_window(), width=10, state='disabled')
+page_rescue.stage_button = ttk.Button(page_rescue.option_necessary_frame, text='详细设置', command=lambda: StageWindow(), width=10, state='disabled')
 page_rescue.stage_button.grid(column=2, row=0, padx=5, pady=5, sticky='w')
 ttk.Button(page_rescue.option_necessary_frame, text='?', command=lambda: messagebox.showinfo('提示', '救援阶段数：救援持续的总波数\n\nPANIC：进入该阶段后刷新尸潮的波数\n\nTANK：进入该阶段后生成Tank的个数\n\nDELAY：进入下一阶段之前等待的秒数\n\nSCRIPTED：进入该阶段时执行的尸潮脚本名字\n\n脚本应直接位于scripts\\vscript文件夹下且不带.nut后缀名'), width=3).grid(column=3, row=0, padx=5, pady=5, sticky='w')
 page_rescue.option_additional_frame = tkinter.LabelFrame(page_rescue, text='额外设置', font=('DengXian', 10))
 page_rescue.option_additional_frame.place(relx=0.255, rely=0.005, relwidth=0.24, relheight=0.88)
 page_rescue.msg_checkbutton = ttk.Checkbutton(page_rescue.option_additional_frame, text='', command=lambda: update_flags(), variable=msg_checkbutton_flag)
 page_rescue.msg_checkbutton.grid(column=0, row=0, padx=5, pady=5, sticky='w')
-page_rescue.msg_button = ttk.Button(page_rescue.option_additional_frame, text='自定义消息设置', command=lambda: open_text_window('自定义消息设置', '600x100', '请输入自定义消息内容：', page_rescue.msg_button, 'msg'), width=15)
+page_rescue.msg_button = ttk.Button(page_rescue.option_additional_frame, text='自定义消息设置', command=lambda: ScriptInputWindow('自定义消息设置', '600x100', '请输入自定义消息内容：', page_rescue.msg_button, 'msg'), width=15)
 page_rescue.msg_button.place(x=24, y=3)
 page_rescue.prohibit_bosses_checkbutton = ttk.Checkbutton(page_rescue.option_additional_frame, text='禁止Tank与Witch', command=lambda: update_flags(), variable=prohibit_bosses_checkbutton_flag)
 page_rescue.prohibit_bosses_checkbutton.grid(column=0, row=1, padx=5, pady=5, sticky='w')
@@ -635,6 +637,7 @@ page_update.update_frame.version_box = ttk.Entry(page_update.update_frame, width
 page_update.update_frame.version_box.grid(column=1, row=1, pady=5)
 ttk.Button(page_update.update_frame, text='手动更新', state='disabled', command=lambda: update_version_check(), width=9).grid(column=2, row=1, padx=5, pady=5)
 
+# notebook里添加新页
 notebook.add(page_targetname, text='Targetname混淆')
 notebook.add(page_second, text='贴图')
 notebook.add(page_third, text='脚本')
@@ -644,6 +647,7 @@ notebook.add(page_options, text='路径设置')
 notebook.add(page_update, text='版本更新')
 notebook.pack(padx=10, pady=5, fill='both', expand=True)
 
+# 初始化时自动读取储存好的配置文件，若没有，则生成新的配置文件
 try:
     with open(os.getenv('APPDATA') + '\\Director\\director.ini', 'a+') as director_settings:
         director_settings.seek(0)
@@ -706,7 +710,6 @@ except FileNotFoundError:
     director_settings.close()
 finally:
     pass
-
 
 # 正式执行
 atexit.register(exit_save)
