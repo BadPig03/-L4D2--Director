@@ -5,6 +5,7 @@ import os
 import re
 import time
 import tkinter
+import tuples
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
@@ -13,7 +14,7 @@ import downloader
 import utils
 
 
-# 新建Window类
+# 定义Window类
 class Window(tkinter.Tk):
     def __init__(self):
         tkinter.Tk.__init__(self)
@@ -30,10 +31,76 @@ class Window(tkinter.Tk):
             self.tk.call('tk', 'scaling', self.tk.call('tk', 'scaling') / scale_factor)
 
 
-# 初始化窗口
+# 定义修改可移动点实体种类的Toplevel类
+class EntityWindow(tkinter.Toplevel):
+    def __init__(self):
+        tkinter.Toplevel.__init__(self)
+        self.move_frame = tkinter.LabelFrame(self, text='设置类型', font=('DengXian', 10))
+        self.move_frame.place(relx=0.01, rely=0.01, relwidth=0.88, relheight=0.98)
+        self.initialize()
+
+    def initialize(self):
+        index_list = [0, 0]
+        self.title('设置点实体类型白名单')
+        self.geometry('1120x632')
+        self.resizable(False, False)
+        self.focus_force()
+        app.attributes('-disabled', True)
+        page_targetname.move_button.configure(state='disabled')
+        ttk.Button(self, text='保存', command=lambda: self.destroy(), width=10).place(relx=0.9045, rely=0.9)
+        for name in move_criteria.items():
+            if index_list[0] <= 23:
+                ttk.Checkbutton(self.move_frame, text=name[0], variable=name[1]).grid(row=index_list[0], column=index_list[1], sticky='w', padx=1, pady=1)
+                index_list[0] += 1
+            else:
+                index_list[0] = 0
+                index_list[1] += 1
+        page_targetname.move_button.wait_window(self)
+        app.attributes('-disabled', False)
+        page_targetname.move_button.configure(state='normal')
+        app.focus_force()
+
+
+# 定义选择脚本文件的Toplevel类
+class ScriptWindow(tkinter.Toplevel):
+    def __init__(self):
+        tkinter.Toplevel.__init__(self)
+        self.file_frame = tkinter.LabelFrame(self, text='选择文件', font=('DengXian', 10))
+        self.file_frame.place(relx=0.01, rely=0.01, relwidth=0.86, relheight=0.98)
+        self.scrollbar_v = tkinter.Scrollbar(self.file_frame)
+        self.scrollbar_v.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        self.scrollbar_h = tkinter.Scrollbar(self.file_frame, orient='horizontal')
+        self.scrollbar_h.pack(side=tkinter.BOTTOM, fill=tkinter.X)
+        self.text_box = tkinter.Text(self.file_frame, font=('Calibri', 12), wrap='none')
+        self.text_box.pack(expand=tkinter.YES, fill=tkinter.BOTH)
+        self.text_box.configure(xscrollcommand=self.scrollbar_h.set)
+        self.text_box.configure(yscrollcommand=self.scrollbar_v.set)
+        self.scrollbar_v.configure(command=self.text_box.yview)
+        self.scrollbar_h.configure(command=self.text_box.xview)
+        for script_path in script_file_path_list:
+            self.text_box.insert('insert', '%s\n' % script_path)
+        self.text_box.configure(state='disabled')
+        self.initialize()
+
+    def initialize(self):
+        self.title('选择脚本文件')
+        self.geometry('1000x600')
+        self.resizable(False, False)
+        self.focus_force()
+        app.attributes('-disabled', True)
+        page_targetname.script_select_button.configure(state='disabled')
+        ttk.Button(self, text='选择文件', command=lambda: select_file(3), width=10).place(relx=0.89, rely=0.83)
+        ttk.Button(self, text='保存', command=lambda: self.destroy(), width=10).place(relx=0.89, rely=0.9)
+        page_targetname.script_select_button.wait_window(self)
+        app.attributes('-disabled', False)
+        page_targetname.script_select_button.configure(state='normal')
+        app.focus_force()
+
+
+# 初始化窗口并定义notebook变量和style
 app = Window()
 notebook = ttk.Notebook(app)
-page_first = tkinter.Frame(app)
+page_targetname = tkinter.Frame(app)
 page_second = tkinter.Frame(app)
 page_third = tkinter.Frame(app)
 page_resources = tkinter.Frame(app)
@@ -45,28 +112,33 @@ style.theme_settings('xpnative', settings={
     'TLabel': {'configure': {'font': ('DengXian', 12)}},
     'TCheckbutton': {'configure': {'font': ('DengXian', 12)}},
     'TButton': {'configure': {'font': ('DengXian', 12)}},
-    'TEntry': {'configure': {'font': ('Calibri', 10)}},
+    'TEntry': {'configure': {'font': ('DengXian', 10)}},
     'TNotebook': {'configure': {'background': 'white', 'font': ('DengXian', 12)}},
     'TNotebook.Tab': {'configure': {'font': ('DengXian', 12)}}})
 style.theme_use('xpnative')
 
-
-# 设立全局变量
+# 定义Director目前的版本号
 __version__ = 'v0.1.3-alpha'
-replace_criteria = ('targetname', 'parentname', 'target', 'PSName', 'SourceEntityName', 'DestinationGroup', 'TemplateName', 'RenameNPC', 'panelname', 'LightningStart', 'LightningEnd', 'filtername', 'ignoredEntity', 'lightingorigin',
-                    'LaserTarget', 'directionentityname', 'targetentityname', 'MainSoundscapeName', 'position0', 'position1', 'position2', 'position3', 'position4', 'position5', 'position6', 'position7', 'master', 'ApplyEntity',
-                    'referencename', 'm_SourceEntityName', 'cpoint1', 'cpoint2', 'cpoint3', 'cpoint4', 'cpoint5', 'cpoint6', 'cpoint7', 'cpoint8', 'cpoint9', 'cpoint10', 'cpoint11', 'cpoint12', 'cpoint13', 'cpoint14', 'cpoint15',
-                    'cpoint16', 'cpoint17', 'cpoint18', 'cpoint19', 'cpoint20', 'cpoint21', 'cpoint22', 'cpoint23', 'cpoint24', 'cpoint25', 'cpoint26', 'cpoint27', 'cpoint28', 'cpoint29', 'cpoint30', 'cpoint31', 'cpoint32', 'cpoint33',
-                    'cpoint34', 'cpoint35', 'cpoint36', 'cpoint37', 'cpoint38', 'cpoint39', 'cpoint40', 'cpoint41', 'cpoint42', 'cpoint43', 'cpoint44', 'cpoint45', 'cpoint46', 'cpoint47', 'cpoint48', 'cpoint49', 'cpoint50', 'cpoint51',
-                    'cpoint52', 'cpoint53', 'cpoint54', 'cpoint55', 'cpoint56', 'cpoint57', 'cpoint58', 'cpoint59', 'cpoint60', 'cpoint61', 'cpoint62', 'cpoint63', 'globalname', 'slavename', 'NextKey', 'moveto', 'PropName', 'Branch01',
-                    'Branch02', 'Branch03', 'Branch04', 'Branch05', 'Branch06', 'Branch07', 'Branch08', 'Branch09', 'Branch10', 'Branch11', 'Branch12', 'Branch13', 'Branch14', 'Branch15', 'Branch16', 'IgnoredName01', 'IgnoredName02',
-                    'IgnoredName03', 'IgnoredName04', 'IgnoredName05', 'IgnoredName06', 'IgnoredName07', 'IgnoredName08', 'IgnoredName09', 'IgnoredName10', 'IgnoredName11', 'IgnoredName12', 'IgnoredName13', 'IgnoredName14',
-                    'IgnoredName15', 'IgnoredName16', 'attach1', 'attach2', 'SpeakerName', 'ListenFilter', 'source', 'lookatname', 'Filter01', 'Filter02', 'Filter03', 'Filter04', 'Filter05', 'Filter06', 'Filter07', 'Filter08',
-                    'Filter09', 'Filter10', 'EntityTemplate', 'Template01', 'Template02', 'Template03', 'Template04', 'Template05', 'Template06', 'Template07', 'Template08', 'Template09', 'Template10', 'Template11', 'Template12',
-                    'Template13', 'Template14', 'Template15', 'Template16', 'DamageTarget', 'constraintsystem', 'newtarget', 'damagefilter', 'InitialOwner', 'altpath', 'PointCamera', 'MeasureTarget', 'MeasureReference', 'Target',
-                    'TargetReference', 'enemyfilter', 'squadname', 'cameraname', 'spawnpositionname', 'scene0', 'scene1', 'scene2', 'scene3', 'scene4', 'scene5', 'scene6', 'scene7', 'scene8', 'scene9', 'scene10', 'scene11', 'scene12',
-                    'scene13', 'scene14', 'scene15', 'target1', 'target2', 'target3', 'target4', 'target5', 'target6', 'target7', 'target8', 'target_entity', 'hint_target', 'nozzle', 'RockTargetName', 'model', 'ColorCorrectionName',
-                    'FogName', 'PostProcessName', 'glow', 'train', 'toptrack', 'bottomtrack', 'landmark', 'measuretarget', 'soundscape', 'TonemapName')
+
+# 定义需要使用到的tkinter variables
+move_checkbutton_flag = tkinter.IntVar()
+script_checkbutton_flag = tkinter.IntVar()
+log_checkbutton_flag = tkinter.IntVar()
+wildcard_checkbutton_flag = tkinter.IntVar()
+msg_checkbutton_flag = tkinter.IntVar()
+prohibit_bosses_checkbutton_flag = tkinter.IntVar()
+qc_nop4_checkbutton_flag = tkinter.IntVar()
+script_string_var = tkinter.StringVar()
+script_string_var.set('')
+
+# 定义需要使用到的boolean
+update_rescue_stage_flag = True
+
+# 定义需要使用到的list
+blacklist_list = []
+script_file_path_list = []
+
+# 定义需要使用到的dict
 move_criteria = {'ai_speechfilter': tkinter.IntVar(value=1), 'ambient_music': tkinter.IntVar(value=1), 'color_correction': tkinter.IntVar(value=1), 'env_credits': tkinter.IntVar(value=1), 'env_detail_controller': tkinter.IntVar(value=1),
                  'env_dof_controller': tkinter.IntVar(value=1), 'env_effectscript': tkinter.IntVar(value=1), 'env_fade': tkinter.IntVar(value=1), 'env_fog_controller': tkinter.IntVar(value=1), 'env_global': tkinter.IntVar(value=1),
                  'env_hudhint': tkinter.IntVar(value=1), 'env_message': tkinter.IntVar(value=1), 'env_outtro_stats': tkinter.IntVar(value=1), 'env_particle_performance_monitor': tkinter.IntVar(value=1),
@@ -91,48 +163,31 @@ move_criteria = {'ai_speechfilter': tkinter.IntVar(value=1), 'ambient_music': tk
                  'point_surroundtest': tkinter.IntVar(value=1), 'point_template': tkinter.IntVar(value=1), 'point_velocitysensor': tkinter.IntVar(value=1), 'postprocess_controller': tkinter.IntVar(value=1),
                  'shadow_control': tkinter.IntVar(value=1), 'sound_mix_layer': tkinter.IntVar(value=1), 'tanktrain_ai': tkinter.IntVar(value=1), 'target_changegravity': tkinter.IntVar(value=1), 'vgui_screen': tkinter.IntVar(value=1),
                  'vgui_slideshow_display': tkinter.IntVar(value=1), 'water_lod_control': tkinter.IntVar(value=1)}
-rescue_type_list = ('PANIC', 'TANK', 'DELAY', 'SCRIPTED', 'CLEAROUT', 'SETUP', 'ESCAPE', 'RESULTS', 'NONE')
+paths_dict = {'move_coordinate': '', 'vmf_path': '', 'dict_path': '', 'game_path': '', 'rescue_path': '', 'qc_dir_path': '', 'qc_output_path': ''}
 rescue_text = {'msg': '', 'stage_number': '0'}
 entities_dict = {}
 move_entities_dict = {}
 rescue_value_dict = {}
 rescue_combobox_list = {}
 rescue_entry_list = {}
-blacklist_list = []
-script_file_path_list = []
-script_string_var = tkinter.StringVar()
-script_string_var.set('')
-move_coordinate = ''
-vmf_path = ''
-dict_path = ''
-game_path = ''
-rescue_path = ''
-qc_dir_path = ''
-qc_output_path = ''
-move_checkbutton_flag = tkinter.IntVar()
-script_checkbutton_flag = tkinter.IntVar()
-log_checkbutton_flag = tkinter.IntVar()
-wildcard_checkbutton_flag = tkinter.IntVar()
-msg_checkbutton_flag = tkinter.IntVar()
-prohibit_bosses_checkbutton_flag = tkinter.IntVar()
-qc_nop4_checkbutton_flag = tkinter.IntVar()
-update_rescue_stage_flag = True
 
 
-def save_settings_before_exit():
+# 作用：在程序正常退出时保存entry、checkbutton、text等内容，以便下次启动程序时可以使用上次的设置
+# 注意：配置文件储存在Appdata\Roaming\Director\director.ini里
+def exit_save():
     temp_string = ['', '', '']
-    with open(os.getenv('APPDATA') + '\\Director\\director.ini', 'w') as settings_log:
-        settings_log.write('move_coordinate = %s\n' % move_coordinate.replace('\n', ''))
+    with open(os.getenv('APPDATA') + '\\Director\\director.ini', mode='w', encoding='utf-8') as settings_log:
+        settings_log.write('move_coordinate = %s\n' % paths_dict['move_coordinate'].replace('\n', ''))
         settings_log.write('move_checkbutton_flag = %s\n' % move_checkbutton_flag.get())
         settings_log.write('script_checkbutton_flag = %s\n' % script_checkbutton_flag.get())
         settings_log.write('log_checkbutton_flag = %s\n' % log_checkbutton_flag.get())
         settings_log.write('wildcard_checkbutton_flag = %s\n' % wildcard_checkbutton_flag.get())
         settings_log.write('msg_checkbutton_flag = %s\n' % msg_checkbutton_flag.get())
         settings_log.write('prohibit_bosses_checkbutton_flag = %s\n' % prohibit_bosses_checkbutton_flag.get())
-        settings_log.write('vmf_path = %s\n' % vmf_path.replace('\n', ''))
-        settings_log.write('dict_path = %s\n' % dict_path.replace('\n', ''))
-        settings_log.write('game_path = %s\n' % game_path.replace('\n', ''))
-        settings_log.write('rescue_path = %s\n' % rescue_path.replace('\n', ''))
+        settings_log.write('vmf_path = %s\n' % paths_dict['vmf_path'].replace('\n', ''))
+        settings_log.write('dict_path = %s\n' % paths_dict['dict_path'].replace('\n', ''))
+        settings_log.write('game_path = %s\n' % paths_dict['game_path'].replace('\n', ''))
+        settings_log.write('rescue_path = %s\n' % paths_dict['rescue_path'].replace('\n', ''))
         settings_log.write('script_file_path_list = ')
         for file_path in script_file_path_list:
             temp_string[1] += (file_path.replace('\n', '') + ' \x1b ')
@@ -143,10 +198,12 @@ def save_settings_before_exit():
         settings_log.write(temp_string[2].removesuffix(' \x1b '))
 
 
-def move_entities():
+# 作用：在vmf文件中寻找可移动点实体并将其hammer id(key)和origin(value)保存进move_entities_dict
+# 注意：需要先搜索id后再匹配classname，防止乱套
+def get_id_and_origin():
     temp_flag = False
     entity_id = 0
-    with open(vmf_path, 'r', -1, 'utf-8') as vmf_file:
+    with open(paths_dict['vmf_path'], mode='r', encoding='utf-8') as vmf_file:
         for move_row in vmf_file:
             if temp_flag is False and re.match('\t\"id\" \"[0-9]*\"', move_row):
                 entity_id = move_row.split('\" \"')[1].replace('\"', '').replace('\n', '')
@@ -161,146 +218,69 @@ def move_entities():
                 temp_flag = False
 
 
-def choose_move_entity_type():
-    index_list = [0, 0]
-    move_entity_window = tkinter.Toplevel(app)
-    move_entity_window.title('设置点实体类型白名单')
-    move_entity_window.geometry('1120x632')
-    move_entity_window.resizable(False, False)
-    move_entity_window.focus_force()
-    app.attributes('-disabled', True)
-    page_first.move_button.configure(state='disabled')
-    move_entity_window.move_frame = tkinter.LabelFrame(move_entity_window, text='设置类型', font=('DengXian', 10))
-    move_entity_window.move_frame.place(relx=0.01, rely=0.01, relwidth=0.88, relheight=0.98)
-
-    def destroy_window():
-        move_entity_window.destroy()
-
-    ttk.Button(move_entity_window, text='保存', command=lambda: destroy_window(), width=10).place(relx=0.9045, rely=0.9)
-    for name in move_criteria.items():
-        if index_list[0] <= 23:
-            ttk.Checkbutton(move_entity_window.move_frame, text=name[0], variable=name[1]).grid(row=index_list[0], column=index_list[1], sticky='w', padx=1, pady=1)
-            index_list[0] += 1
-        else:
-            index_list[0] = 0
-            index_list[1] += 1
-    page_first.move_button.wait_window(move_entity_window)
-    app.attributes('-disabled', False)
-    page_first.move_button.configure(state='normal')
-    app.focus_force()
-
-
-def check_coordinate():
-    global move_coordinate
-    if move_checkbutton_flag.get():
-        temp_coordinates = page_first.move_box.get()
-        if re.fullmatch('^(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?$', temp_coordinates):
-            move_coordinate = re.sub('[^0-9.-]+', ' ', temp_coordinates)
-            return True
-        else:
-            return False
-
-
-def choose_script_file():
-    script_file_window = tkinter.Toplevel(app)
-    script_file_window.title('选择脚本文件')
-    script_file_window.geometry('1000x600')
-    script_file_window.resizable(False, False)
-    script_file_window.focus_force()
-    app.attributes('-disabled', True)
-    page_first.script_select_button.configure(state='disabled')
-    script_file_window.file_frame = tkinter.LabelFrame(script_file_window, text='选择文件', font=('DengXian', 10))
-    script_file_window.file_frame.place(relx=0.01, rely=0.01, relwidth=0.86, relheight=0.98)
-    script_file_window.scrollbar_v = tkinter.Scrollbar(script_file_window.file_frame)
-    script_file_window.scrollbar_v.pack(side=tkinter.RIGHT, fill=tkinter.Y)
-    script_file_window.scrollbar_h = tkinter.Scrollbar(script_file_window.file_frame, orient='horizontal')
-    script_file_window.scrollbar_h.pack(side=tkinter.BOTTOM, fill=tkinter.X)
-    script_file_window.text_box = tkinter.Text(script_file_window.file_frame, font=('Calibri', 12), wrap='none')
-    script_file_window.text_box.pack(expand=tkinter.YES, fill=tkinter.BOTH)
-    script_file_window.text_box.configure(xscrollcommand=script_file_window.scrollbar_h.set)
-    script_file_window.text_box.configure(yscrollcommand=script_file_window.scrollbar_v.set)
-    script_file_window.scrollbar_v.configure(command=script_file_window.text_box.yview)
-    script_file_window.scrollbar_h.configure(command=script_file_window.text_box.xview)
-    for script_path in script_file_path_list:
-        script_file_window.text_box.insert('insert', '%s\n' % script_path)
-    script_file_window.text_box.configure(state='disabled')
-
-    def destroy_window():
-        script_file_window.destroy()
-
-    ttk.Button(script_file_window, text='选择文件', command=lambda: select_file(3, script_file_window), width=10).place(relx=0.89, rely=0.83)
-    ttk.Button(script_file_window, text='保存', command=lambda: destroy_window(), width=10).place(relx=0.89, rely=0.9)
-    page_first.script_select_button.wait_window(script_file_window)
-    app.attributes('-disabled', False)
-    page_first.script_select_button.configure(state='normal')
-    app.focus_force()
-
-
-def select_file(selection_index, script_file_window):
-    global vmf_path
-    global dict_path
-    global game_path
-    global rescue_path
-    global qc_dir_path
-    global qc_output_path
+# 作用：调用选择文件(夹)的窗口并保存其路径
+# 注意：window形参的缺省值为None
+def select_file(selection_index):
     global script_file_path_list
     match selection_index:
         case 0:
-            vmf_path = tkinter.filedialog.askopenfilename(filetypes=[('Valve Map Format', '*.vmf')])
+            paths_dict['vmf_path'] = tkinter.filedialog.askopenfilename(filetypes=[('Valve Map Format', '*.vmf')])
             page_options.vmf_box.configure(state='normal')
             page_options.vmf_box.delete(0, tkinter.END)
-            page_options.vmf_box.insert(0, vmf_path)
+            page_options.vmf_box.insert(0, paths_dict['vmf_path'])
             page_options.vmf_box.configure(state='readonly')
         case 1:
-            dict_path = tkinter.filedialog.askopenfilename(filetypes=[('Director Dict File', '*.dict')])
+            paths_dict['dict_path'] = tkinter.filedialog.askopenfilename(filetypes=[('Director Dict File', '*.dict')])
             page_options.dict_box.configure(state='normal')
             page_options.dict_box.delete(0, tkinter.END)
-            page_options.dict_box.insert(0, dict_path)
+            page_options.dict_box.insert(0, paths_dict['dict_path'])
             page_options.dict_box.configure(state='readonly')
         case 2:
-            game_path = tkinter.filedialog.askopenfilename(filetypes=[('left4dead2.exe', 'left4dead2.exe')])
+            paths_dict['game_path'] = tkinter.filedialog.askopenfilename(filetypes=[('left4dead2.exe', 'left4dead2.exe')])
             page_options.game_box.configure(state='normal')
             page_options.game_box.delete(0, tkinter.END)
-            page_options.game_box.insert(0, game_path)
+            page_options.game_box.insert(0, paths_dict['game_path'])
             page_options.game_box.configure(state='readonly')
         case 3:
             script_file_path_list = tkinter.filedialog.askopenfilenames(filetypes=[('NUT File', '*.nut')])
-            script_file_window.text_box.configure(state='normal')
-            script_file_window.text_box.delete('1.0', 'tkinter.END.0')
+            ScriptWindow().text_box.configure(state='normal')
+            ScriptWindow().text_box.delete('1.0', 'tkinter.END.0')
             for script_path in script_file_path_list:
-                script_file_window.text_box.insert('insert', '%s\n' % script_path)
-            script_file_window.text_box.configure(state='disabled')
+                ScriptWindow().text_box.insert('insert', '%s\n' % script_path)
+            ScriptWindow().text_box.configure(state='disabled')
             script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
-            script_file_window.focus_force()
+            ScriptWindow().focus_force()
         case 4:
-            rescue_path = tkinter.filedialog.askopenfilename(filetypes=[('NUT File', '*_finale.nut')])
+            paths_dict['rescue_path'] = tkinter.filedialog.askopenfilename(filetypes=[('NUT File', '*_finale.nut')])
             page_options.rescue_box.configure(state='normal')
             page_options.rescue_box.delete(0, tkinter.END)
-            page_options.rescue_box.insert(0, rescue_path)
+            page_options.rescue_box.insert(0, paths_dict['rescue_path'])
             page_options.rescue_box.configure(state='readonly')
         case 5:
-            qc_dir_path = tkinter.filedialog.askdirectory()
+            paths_dict['qc_dir_path'] = tkinter.filedialog.askdirectory()
             page_resources.qc_box.configure(state='normal')
             page_resources.qc_box.delete(0, tkinter.END)
-            page_resources.qc_box.insert(0, qc_dir_path)
+            page_resources.qc_box.insert(0, paths_dict['qc_dir_path'])
             page_resources.qc_box.configure(state='readonly')
-            if qc_dir_path != '' and qc_output_path != '':
+            if paths_dict['qc_dir_path'] != '' and paths_dict['qc_output_path'] != '':
                 page_resources.qc_compile_button.configure(state='normal')
             else:
                 page_resources.qc_compile_button.configure(state='disabled')
         case 6:
-            qc_output_path = tkinter.filedialog.askdirectory()
+            paths_dict['qc_output_path'] = tkinter.filedialog.askdirectory()
             page_resources.qc_output_box.configure(state='normal')
             page_resources.qc_output_box.delete(0, tkinter.END)
-            page_resources.qc_output_box.insert(0, qc_output_path)
+            page_resources.qc_output_box.insert(0, paths_dict['qc_output_path'])
             page_resources.qc_output_box.configure(state='readonly')
-            if qc_dir_path != '' and qc_output_path != '':
+            if paths_dict['qc_dir_path'] != '' and paths_dict['qc_output_path'] != '':
                 page_resources.qc_compile_button.configure(state='normal')
             else:
                 page_resources.qc_compile_button.configure(state='disabled')
 
 
-def edit_script():
+# 作用：备份脚本文件并替换里面的targetname
+# 注意：备份文件的后缀名为.bak
+def edit_script_files():
     for script_path in script_file_path_list:
         try:
             os.rename(script_path, '%s.bak' % script_path)
@@ -310,7 +290,9 @@ def edit_script():
                 os.rename(script_path, '%s.bak' % script_path)
             else:
                 return
-        with open('%s.bak' % script_path, 'r', -1, 'utf-8') as old_file, open(script_path, 'w', -1, 'utf-8') as new_file:
+        finally:
+            pass
+        with open('%s.bak' % script_path, mode='r', encoding='utf-8') as old_file, open(script_path, mode='w', encoding='utf-8') as new_file:
             for file_row in old_file:
                 for entities_item in entities_dict.items():
                     if entities_item[0] in file_row:
@@ -318,18 +300,20 @@ def edit_script():
                 new_file.write(file_row)
 
 
+# 作用：按下checkbutton后更新对应的button、box和variables状态
+# 注意：所有相关的都会被一同更新
 def update_flags():
     if move_checkbutton_flag.get():
-        page_first.move_box.configure(state='normal')
-        page_first.move_button.configure(state='normal')
+        page_targetname.move_box.configure(state='normal')
+        page_targetname.move_button.configure(state='normal')
     else:
-        page_first.move_box.configure(state='disabled')
-        page_first.move_button.configure(state='disabled')
+        page_targetname.move_box.configure(state='disabled')
+        page_targetname.move_button.configure(state='disabled')
     if script_checkbutton_flag.get():
-        page_first.script_select_button.configure(state='normal')
+        page_targetname.script_select_button.configure(state='normal')
         script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
     else:
-        page_first.script_select_button.configure(state='disabled')
+        page_targetname.script_select_button.configure(state='disabled')
         script_string_var.set('')
     if msg_checkbutton_flag.get():
         page_rescue.msg_button.configure(state='normal')
@@ -337,16 +321,18 @@ def update_flags():
         page_rescue.msg_button.configure(state='disabled')
 
 
+# 作用：备份vmf并读取所有targetname，生成混淆后的字符串，然后准备混淆targetname
+# 注意：备份文件的后缀名为.bak
 def do_obfuscate():
-    if vmf_path == '':
+    if paths_dict['vmf_path'] == '':
         messagebox.showerror('错误', '请选择文件！')
         return
-    if move_checkbutton_flag.get() and not check_coordinate():
-        messagebox.showerror('错误', '不合法的地图坐标！')
+    if move_checkbutton_flag.get() and not check_coordinate_rationality():
+        messagebox.showerror('错误', '不合理的地图坐标！')
         return
     if messagebox.askquestion('确认', '确认要混淆vmf文件吗？\n将会覆盖源文件并创建.bak备份文件！') == 'yes':
-        file_path = vmf_path.replace('\\', '/')
-        analyze_file(open(file_path, 'r', -1, 'utf-8'))
+        file_path = paths_dict['vmf_path'].replace('\\', '/')
+        generate_obfuscate_targetname(open(file_path, mode='r', encoding='utf-8'))
         try:
             os.rename(file_path, '%s.bak' % file_path)
         except OSError:
@@ -355,42 +341,47 @@ def do_obfuscate():
                 os.rename(file_path, '%s.bak' % file_path)
             else:
                 return
-        with open('%s.bak' % file_path, 'r', -1, 'utf-8') as old_file, open(file_path, 'w', -1, 'utf-8') as new_file:
+        finally:
+            pass
+        with open('%s.bak' % file_path, mode='r', encoding='utf-8') as old_file, open(file_path, mode='w', encoding='utf-8') as new_file:
             replace_string(old_file, new_file, file_path)
 
 
-def analyze_file(file):
+# 作用：检查用户输入的坐标是否合理，合理则返回True，反之返回False
+# 注意：若合理，会将坐标标准化后储存进paths_dict里
+def check_coordinate_rationality():
     if move_checkbutton_flag.get():
-        move_entities()
-    for file_row in file:
-        if '*' in file_row:
-            blacklist_list.append(file_row.split('*')[0].split('\"')[-1].split('\x1b')[-1])
-        if re.findall('\"targetname\" \".*?\"', file_row):
-            file_row = file_row.split("\" \"")[1][:-2]
-            if utils.is_startswith_in_list(file_row, blacklist_list):
-                entities_dict[file_row] = utils.generate_random_string()
+        temp_coordinates = page_targetname.move_box.get()
+        if re.fullmatch('^(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?([^0-9]+)(-?[0-9]+)(.[0-9]+)?$', temp_coordinates):
+            paths_dict['move_coordinate'] = re.sub('[^0-9.-]+', ' ', temp_coordinates)
+            return True
+        else:
+            return False
 
 
+# 作用：替换vmf里的targetname(包括I/O里的targetname)
+# 注意：若勾选了保存混淆字典，会保存targetname一一对应的日志文件
+#      若勾选了移动点实体到指定位置，则一并移动可移动点实体到指定位置
 def replace_string(old_file, new_file, file_path):
-    flag = False
+    temp_flag = False
     for old_file_row in old_file:
         if re.search("\"[A-Za-z0-9]+\" \"", old_file_row):
             criteria = re.search("\"[A-Za-z0-9]+\" \"", old_file_row).group()[1:-3]
-            if criteria in replace_criteria:
+            if criteria in tuples.replace_criteria:
                 for entities_item in entities_dict.items():
                     old_file_row = old_file_row.replace('\"' + criteria + '\" \"' + entities_item[0] + '\"', '\"' + criteria + '\" \"' + entities_item[1] + '\"')
         if re.search("[A-Za-z0-9]+\x1b", old_file_row):
             for entities_item in entities_dict.items():
                 old_file_row = old_file_row.replace(entities_item[0] + '\x1b', entities_item[1] + '\x1b')
-        if flag is False and re.match('\t\"id\" \"[0-9]*\"', old_file_row):
+        if temp_flag is False and re.match('\t\"id\" \"[0-9]*\"', old_file_row):
             entity_id = old_file_row.split('\" \"')[1].replace('\"', '').replace('\n', '')
             if entity_id in move_entities_dict.keys():
-                flag = True
+                temp_flag = True
             else:
                 continue
-        if flag is True and re.match('\t\"origin\" \".*?\"', old_file_row):
-            old_file_row = '\t\"origin\" \"%s\"\n' % move_coordinate
-            flag = False
+        if temp_flag is True and re.match('\t\"origin\" \".*?\"', old_file_row):
+            old_file_row = '\t\"origin\" \"%s\"\n' % paths_dict['move_coordinate']
+            temp_flag = False
         new_file.write(old_file_row)
     if log_checkbutton_flag.get():
         with open('%s.log' % file_path, 'w', -1, 'utf-8') as log_file:
@@ -400,6 +391,20 @@ def replace_string(old_file, new_file, file_path):
                 log_file.write('%s\n' % entities_item)
             log_file.write('!%s' % time.strftime('%Y-%m-%d %H:%M:%S'))
     messagebox.showinfo('提示', 'vmf已混淆完成！\n.bak备份文件已创建！')
+
+
+# 作用：生成混淆后的字符串并储存进entities_dict
+# 注意：若勾选了移动点实体到指定位置，则同时获取可移动点实体的hammer id
+def generate_obfuscate_targetname(file):
+    if move_checkbutton_flag.get():
+        get_id_and_origin()
+    for file_row in file:
+        if '*' in file_row:
+            blacklist_list.append(file_row.split('*')[0].split('\"')[-1].split('\x1b')[-1])
+        if re.findall('\"targetname\" \".*?\"', file_row):
+            file_row = file_row.split("\" \"")[1][:-2]
+            if utils.is_startswith_in_list(file_row, blacklist_list):
+                entities_dict[file_row] = utils.generate_random_string()
 
 
 def update_rescue_box():
@@ -464,7 +469,7 @@ def open_stage_window():
     for index in range(1, int(rescue_text['stage_number']) + 1):
         tkinter.Label(stage_window, text='阶段 %s: ' % str(index).zfill(2), font=('DengXian', 12)).grid(column=0, row=index - 1, padx=5, pady=5, sticky='w')
         combobox = ttk.Combobox(stage_window, width=12, state='readonly', textvariable=tkinter.StringVar())
-        combobox['values'] = rescue_type_list
+        combobox['values'] = tuples.rescue_type_list
         combobox.current(0)
         combobox.grid(column=1, row=index - 1, padx=5, pady=5)
         entry = ttk.Entry(stage_window, width=31, font=('DengXian', 12))
@@ -532,46 +537,46 @@ def update_version_check():
         page_update.update_frame.version_box.configure(state='readonly')
 
 
-page_first.option_frame = tkinter.LabelFrame(page_first, text='选项', font=('DengXian', 10))
-page_first.option_frame.place(relx=0.01, rely=0.01, relwidth=0.48, relheight=0.48)
-page_first.move_checkbutton = ttk.Checkbutton(page_first.option_frame, text='将指定点实体移动到指定位置:', command=lambda: update_flags(), variable=move_checkbutton_flag)
-page_first.move_checkbutton.grid(column=0, row=0, padx=5, pady=5, sticky='w')
-page_first.move_box = ttk.Entry(page_first.option_frame, width=28, state='readonly', font=('Calibri', 10))
-page_first.move_box.grid(column=1, row=0, padx=5, pady=5)
-page_first.move_button = ttk.Button(page_first.option_frame, text='指定实体类型', command=lambda: choose_move_entity_type(), width=15)
-page_first.move_button.grid(column=2, row=0, padx=5)
-page_first.script_checkbutton = ttk.Checkbutton(page_first.option_frame, text='同时对指定脚本文件进行混淆:', command=lambda: update_flags(), variable=script_checkbutton_flag)
-page_first.script_checkbutton.grid(column=0, row=1, padx=5, pady=5, sticky='w')
-page_first.text_third = ttk.Label(page_first.option_frame, textvariable=script_string_var)
-page_first.text_third.grid(column=1, row=1, padx=5, pady=5, sticky='w')
-page_first.script_select_button = ttk.Button(page_first.option_frame, text='选择脚本文件', command=lambda: choose_script_file(), width=15, state='disabled')
-page_first.script_select_button.grid(column=2, row=1, padx=5, pady=5)
-page_first.wildcard_checkbutton = ttk.Checkbutton(page_first.option_frame, text='启用通配符黑名单', variable=wildcard_checkbutton_flag)
-page_first.wildcard_checkbutton.grid(column=0, row=2, padx=5, pady=5, sticky='w')
-page_first.wildcard_checkbutton.invoke()
-page_first.log_checkbutton = ttk.Checkbutton(page_first.option_frame, text='保存混淆字典', variable=log_checkbutton_flag)
-page_first.log_checkbutton.grid(column=0, row=3, padx=5, pady=5, sticky='w')
-page_first.log_checkbutton.invoke()
-page_first.execute_button = ttk.Button(page_first, text='混淆', command=lambda: do_obfuscate(), width=9)
-page_first.execute_button.place(relx=0.8, rely=0.83)
-page_first.test_button = ttk.Button(page_first, text='测试', command=lambda: edit_script(), width=9)
-page_first.test_button.place(relx=0.6, rely=0.83)
-page_first.text_second = tkinter.Label(page_first, text='仅用于求生之路2的vmf文件！', font=('DengXian', 12), fg='red')
-page_first.text_second.place(relx=0.05, rely=0.835)
+page_targetname.option_frame = tkinter.LabelFrame(page_targetname, text='选项', font=('DengXian', 10))
+page_targetname.option_frame.place(relx=0.01, rely=0.01, relwidth=0.48, relheight=0.48)
+page_targetname.move_checkbutton = ttk.Checkbutton(page_targetname.option_frame, text='将指定点实体移动到指定位置:', command=lambda: update_flags(), variable=move_checkbutton_flag)
+page_targetname.move_checkbutton.grid(column=0, row=0, padx=5, pady=5, sticky='w')
+page_targetname.move_box = ttk.Entry(page_targetname.option_frame, width=28, state='readonly', font=('Calibri', 10))
+page_targetname.move_box.grid(column=1, row=0, padx=5, pady=5)
+page_targetname.move_button = ttk.Button(page_targetname.option_frame, text='指定实体类型', command=lambda: EntityWindow(), width=15)
+page_targetname.move_button.grid(column=2, row=0, padx=5)
+page_targetname.script_checkbutton = ttk.Checkbutton(page_targetname.option_frame, text='同时对指定脚本文件进行混淆:', command=lambda: update_flags(), variable=script_checkbutton_flag)
+page_targetname.script_checkbutton.grid(column=0, row=1, padx=5, pady=5, sticky='w')
+page_targetname.text_third = ttk.Label(page_targetname.option_frame, textvariable=script_string_var)
+page_targetname.text_third.grid(column=1, row=1, padx=5, pady=5, sticky='w')
+page_targetname.script_select_button = ttk.Button(page_targetname.option_frame, text='选择脚本文件', command=lambda: ScriptWindow(), width=15, state='disabled')
+page_targetname.script_select_button.grid(column=2, row=1, padx=5, pady=5)
+page_targetname.wildcard_checkbutton = ttk.Checkbutton(page_targetname.option_frame, text='启用通配符黑名单', variable=wildcard_checkbutton_flag)
+page_targetname.wildcard_checkbutton.grid(column=0, row=2, padx=5, pady=5, sticky='w')
+page_targetname.wildcard_checkbutton.invoke()
+page_targetname.log_checkbutton = ttk.Checkbutton(page_targetname.option_frame, text='保存混淆字典', variable=log_checkbutton_flag)
+page_targetname.log_checkbutton.grid(column=0, row=3, padx=5, pady=5, sticky='w')
+page_targetname.log_checkbutton.invoke()
+page_targetname.execute_button = ttk.Button(page_targetname, text='混淆', command=lambda: do_obfuscate(), width=9)
+page_targetname.execute_button.place(relx=0.8, rely=0.83)
+page_targetname.test_button = ttk.Button(page_targetname, text='测试', command=lambda: edit_script_files(), width=9)
+page_targetname.test_button.place(relx=0.6, rely=0.83)
+page_targetname.text_second = tkinter.Label(page_targetname, text='仅用于求生之路2的vmf文件！', font=('DengXian', 12), fg='red')
+page_targetname.text_second.place(relx=0.05, rely=0.835)
 
 page_resources.qc_frame = tkinter.LabelFrame(page_resources, text='qc批量编译', font=('DengXian', 10))
 page_resources.qc_frame.place(relx=0.005, rely=0.005, relwidth=0.49, relheight=0.24)
 ttk.Label(page_resources.qc_frame, text='选择文件夹：').grid(column=0, row=0, padx=5, pady=6, sticky='w')
 page_resources.qc_box = ttk.Entry(page_resources.qc_frame, width=62, state='readonly')
 page_resources.qc_box.grid(column=1, row=0, padx=5, pady=6)
-ttk.Button(page_resources.qc_frame, text='浏览', command=lambda: select_file(5, app), width=9).grid(column=2, row=0, padx=5, pady=6)
+ttk.Button(page_resources.qc_frame, text='浏览', command=lambda: select_file(5), width=9).grid(column=2, row=0, padx=5, pady=6)
 ttk.Label(page_resources.qc_frame, text='选择输出位置：').grid(column=0, row=1, padx=5, pady=6, sticky='w')
 page_resources.qc_output_box = ttk.Entry(page_resources.qc_frame, width=62, state='readonly')
 page_resources.qc_output_box.grid(column=1, row=1, padx=5, pady=6)
-ttk.Button(page_resources.qc_frame, text='浏览', command=lambda: select_file(6, app), width=9).grid(column=2, row=1, padx=5, pady=6)
+ttk.Button(page_resources.qc_frame, text='浏览', command=lambda: select_file(6), width=9).grid(column=2, row=1, padx=5, pady=6)
 page_resources.qc_nop4_checkbutton = ttk.Checkbutton(page_resources.qc_frame, text='-nop4', command=lambda: update_flags(), variable=qc_nop4_checkbutton_flag)
 page_resources.qc_nop4_checkbutton.grid(column=0, row=2, padx=5, pady=5, sticky='w')
-page_resources.qc_compile_button = ttk.Button(page_resources.qc_frame, text='编译', command=lambda: walk_through_qc_files(qc_dir_path, game_path.removesuffix('left4dead2.exe') + 'bin/studiomdl.exe'), width=9, state='disabled')
+page_resources.qc_compile_button = ttk.Button(page_resources.qc_frame, text='编译', command=lambda: walk_through_qc_files(paths_dict['qc_dir_path'], paths_dict['game_path'].removesuffix('left4dead2.exe') + 'bin/studiomdl.exe'), width=9, state='disabled')
 page_resources.qc_compile_button.grid(column=2, row=3, padx=5, pady=6)
 
 page_rescue.option_necessary_frame = tkinter.LabelFrame(page_rescue, text='必选设置', font=('DengXian', 10))
@@ -581,11 +586,7 @@ page_rescue.stage_box = ttk.Entry(page_rescue.option_necessary_frame, width=6)
 page_rescue.stage_box.grid(column=1, row=0, padx=5, pady=5, sticky='w')
 page_rescue.stage_button = ttk.Button(page_rescue.option_necessary_frame, text='详细设置', command=lambda: open_stage_window(), width=10, state='disabled')
 page_rescue.stage_button.grid(column=2, row=0, padx=5, pady=5, sticky='w')
-ttk.Button(page_rescue.option_necessary_frame, text='?',
-           command=lambda: messagebox.showinfo('提示', '救援阶段数：救援持续的总波数\n\nPANIC：进入该阶段后刷新尸潮的波数\n\nTANK：进入该阶段后生成Tank的个数\n\nDELAY：进入下一阶段之前等待的秒数\n\nSCRIPTED：进入该阶段时执行的尸潮脚本名字\n\n脚本应直接位于scripts\\vscript文件夹下且不带.nut后缀名'), width=3).grid(column=3,
-                                                                                                                                                                                                                                 row=0, padx=5,
-                                                                                                                                                                                                                                 pady=5,
-                                                                                                                                                                                                                                 sticky='w')
+ttk.Button(page_rescue.option_necessary_frame, text='?', command=lambda: messagebox.showinfo('提示', '救援阶段数：救援持续的总波数\n\nPANIC：进入该阶段后刷新尸潮的波数\n\nTANK：进入该阶段后生成Tank的个数\n\nDELAY：进入下一阶段之前等待的秒数\n\nSCRIPTED：进入该阶段时执行的尸潮脚本名字\n\n脚本应直接位于scripts\\vscript文件夹下且不带.nut后缀名'), width=3).grid(column=3, row=0, padx=5, pady=5, sticky='w')
 page_rescue.option_additional_frame = tkinter.LabelFrame(page_rescue, text='额外设置', font=('DengXian', 10))
 page_rescue.option_additional_frame.place(relx=0.255, rely=0.005, relwidth=0.24, relheight=0.88)
 page_rescue.msg_checkbutton = ttk.Checkbutton(page_rescue.option_additional_frame, text='', command=lambda: update_flags(), variable=msg_checkbutton_flag)
@@ -613,19 +614,19 @@ page_options.option_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0
 ttk.Label(page_options.option_frame, text='vmf文件路径：').grid(column=0, row=0, padx=5, pady=6, sticky='w')
 page_options.vmf_box = ttk.Entry(page_options.option_frame, width=165, state='readonly')
 page_options.vmf_box.grid(column=1, row=0, padx=5, pady=10)
-ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(0, app), width=9).grid(column=2, row=0, padx=5, pady=6)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(0), width=9).grid(column=2, row=0, padx=5, pady=6)
 ttk.Label(page_options.option_frame, text='混淆字典路径：').grid(column=0, row=1, padx=5, pady=6, sticky='w')
 page_options.dict_box = ttk.Entry(page_options.option_frame, width=165, state='readonly')
 page_options.dict_box.grid(column=1, row=1, padx=5, pady=6)
-ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(1, app), width=9).grid(column=2, row=1, padx=5, pady=6)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(1), width=9).grid(column=2, row=1, padx=5, pady=6)
 ttk.Label(page_options.option_frame, text='游戏本体路径：').grid(column=0, row=2, padx=5, pady=6, sticky='w')
 page_options.game_box = ttk.Entry(page_options.option_frame, width=165, state='readonly')
 page_options.game_box.grid(column=1, row=2, padx=5, pady=6)
-ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(2, app), width=9).grid(column=2, row=2, padx=5, pady=6)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(2), width=9).grid(column=2, row=2, padx=5, pady=6)
 ttk.Label(page_options.option_frame, text='救援脚本路径：').grid(column=0, row=3, padx=5, pady=6, sticky='w')
 page_options.rescue_box = ttk.Entry(page_options.option_frame, width=165, state='readonly')
 page_options.rescue_box.grid(column=1, row=3, padx=5, pady=6)
-ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(4, app), width=9).grid(column=2, row=3, padx=5, pady=6)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(4), width=9).grid(column=2, row=3, padx=5, pady=6)
 
 page_update.update_frame = tkinter.LabelFrame(page_update, text='当前版本：%s' % __version__, font=('DengXian', 10))
 page_update.update_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.98)
@@ -634,7 +635,7 @@ page_update.update_frame.version_box = ttk.Entry(page_update.update_frame, width
 page_update.update_frame.version_box.grid(column=1, row=1, pady=5)
 ttk.Button(page_update.update_frame, text='手动更新', state='disabled', command=lambda: update_version_check(), width=9).grid(column=2, row=1, padx=5, pady=5)
 
-notebook.add(page_first, text='Targetname混淆')
+notebook.add(page_targetname, text='Targetname混淆')
 notebook.add(page_second, text='贴图')
 notebook.add(page_third, text='脚本')
 notebook.add(page_resources, text='资源提取器')
@@ -648,22 +649,22 @@ try:
         director_settings.seek(0)
         for row in director_settings:
             if row.startswith('move_coordinate ='):
-                move_coordinate = row.split(' = ')[1].replace('\n', '')
-                page_first.move_box.configure(state='normal')
-                page_first.move_box.insert(0, move_coordinate)
-                page_first.move_box.configure(state='readonly')
+                paths_dict['move_coordinate'] = row.split(' = ')[1].replace('\n', '')
+                page_targetname.move_box.configure(state='normal')
+                page_targetname.move_box.insert(0, paths_dict['move_coordinate'])
+                page_targetname.move_box.configure(state='readonly')
             if row.startswith('move_checkbutton_flag ='):
                 if int(row.split(' = ')[1]) == 1:
-                    page_first.move_checkbutton.invoke()
+                    page_targetname.move_checkbutton.invoke()
             if row.startswith('script_checkbutton_flag ='):
                 if int(row.split(' = ')[1]) == 1:
-                    page_first.script_checkbutton.invoke()
+                    page_targetname.script_checkbutton.invoke()
             if row.startswith('log_checkbutton_flag ='):
                 if int(row.split(' = ')[1]) == 0:
-                    page_first.log_checkbutton.invoke()
+                    page_targetname.log_checkbutton.invoke()
             if row.startswith('wildcard_checkbutton_flag ='):
                 if int(row.split(' = ')[1]) == 0:
-                    page_first.wildcard_checkbutton.invoke()
+                    page_targetname.wildcard_checkbutton.invoke()
             if row.startswith('msg_checkbutton_flag ='):
                 if int(row.split(' = ')[1]) == 1:
                     page_rescue.msg_checkbutton.invoke()
@@ -671,24 +672,24 @@ try:
                 if int(row.split(' = ')[1]) == 1:
                     page_rescue.prohibit_bosses_checkbutton.invoke()
             if row.startswith('vmf_path ='):
-                vmf_path = row.split(' = ')[1].replace('\n', '')
+                paths_dict['vmf_path'] = row.split(' = ')[1].replace('\n', '')
                 page_options.vmf_box.configure(state='normal')
-                page_options.vmf_box.insert(0, vmf_path)
+                page_options.vmf_box.insert(0, paths_dict['vmf_path'])
                 page_options.vmf_box.configure(state='readonly')
             if row.startswith('dict_path ='):
-                dict_path = row.split(' = ')[1].replace('\n', '')
+                paths_dict['dict_path'] = row.split(' = ')[1].replace('\n', '')
                 page_options.dict_box.configure(state='normal')
-                page_options.dict_box.insert(0, dict_path)
+                page_options.dict_box.insert(0, paths_dict['dict_path'])
                 page_options.dict_box.configure(state='readonly')
             if row.startswith('game_path ='):
-                game_path = row.split(' = ')[1].replace('\n', '')
+                paths_dict['game_path'] = row.split(' = ')[1].replace('\n', '')
                 page_options.game_box.configure(state='normal')
-                page_options.game_box.insert(0, game_path)
+                page_options.game_box.insert(0, paths_dict['game_path'])
                 page_options.game_box.configure(state='readonly')
             if row.startswith('rescue_path ='):
-                rescue_path = row.split(' = ')[1].replace('\n', '')
+                paths_dict['rescue_path'] = row.split(' = ')[1].replace('\n', '')
                 page_options.rescue_box.configure(state='normal')
-                page_options.rescue_box.insert(0, rescue_path)
+                page_options.rescue_box.insert(0, paths_dict['rescue_path'])
                 page_options.rescue_box.configure(state='readonly')
             if row.startswith('script_file_path_list ='):
                 if row != 'script_file_path_list = \n':
@@ -701,12 +702,13 @@ try:
                     move_criteria[move_list.split(': ')[0]] = tkinter.IntVar(value=int(move_list.split(': ')[1]))
             update_flags()
 except FileNotFoundError:
-    open(os.getenv('APPDATA') + '\\Director\\director.ini', 'x')
+    director_settings = open(os.getenv('APPDATA') + '\\Director\\director.ini', 'x')
+    director_settings.close()
 finally:
     pass
 
 
 # 正式执行
-atexit.register(save_settings_before_exit)
+atexit.register(exit_save)
 app.after(100, auto_refresh_rescue_window)
 app.mainloop()
