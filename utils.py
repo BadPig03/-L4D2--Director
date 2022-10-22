@@ -1,4 +1,3 @@
-import os
 import random
 
 
@@ -10,11 +9,11 @@ def generate_random_string(digit=16):
     return ''.join(string)
 
 
-def is_startswith_in_list(row, _list):
-    for item in _list:
+def is_startswith_in_list(row, blacklist):
+    for item in blacklist:
         if row.startswith(item):
-            return False
-    return True
+            return True
+    return False
 
 
 def get_window_y_size(num):
@@ -58,3 +57,11 @@ def standardized_scripted(text):
     if '.' in text:
         text = text.split('.')[0]
     return '\"' + text + '\"'
+
+
+def string_to_list(old_string):
+    new_list = []
+    for row in old_string.split('\n'):
+        if row != '':
+            new_list.append(row)
+    return new_list

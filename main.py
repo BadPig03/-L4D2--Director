@@ -13,6 +13,9 @@ from tkinter import ttk
 import downloader
 import utils
 
+# 定义Director目前的版本号
+__version__ = 'v0.1.4-alpha'
+
 
 # 定义Window类
 class Window(tkinter.Tk):
@@ -32,6 +35,11 @@ class Window(tkinter.Tk):
 class EntityWindow(tkinter.Toplevel):
     def __init__(self):
         tkinter.Toplevel.__init__(self)
+
+        def destroy_window(window):
+            window.destroy()
+
+        index_list = [0, 0]
         self.title('设置点实体类型白名单')
         self.geometry('1120x632')
         self.resizable(False, False)
@@ -39,9 +47,8 @@ class EntityWindow(tkinter.Toplevel):
         app.attributes('-disabled', True)
         self.move_frame = tkinter.LabelFrame(self, text='设置类型', font=('DengXian', 10))
         self.move_frame.place(relx=0.01, rely=0.01, relwidth=0.88, relheight=0.98)
-        index_list = [0, 0]
         page_targetname.move_button.configure(state='disabled')
-        ttk.Button(self, text='保存', command=lambda: self.destroy(), width=10).place(relx=0.9045, rely=0.9)
+        ttk.Button(self, text='保存', command=lambda: destroy_window(self), width=10).place(relx=0.9045, rely=0.9)
         for name in move_criteria.items():
             if index_list[0] <= 23:
                 ttk.Checkbutton(self.move_frame, text=name[0], variable=name[1]).grid(row=index_list[0], column=index_list[1], sticky='w', padx=1, pady=1)
@@ -59,6 +66,22 @@ class EntityWindow(tkinter.Toplevel):
 class ScriptWindow(tkinter.Toplevel):
     def __init__(self):
         tkinter.Toplevel.__init__(self)
+
+        def choose_script_files(window):
+            global script_file_path_list
+            script_file_path_list = tkinter.filedialog.askopenfilenames(filetypes=[('NUT File', '*.nut')])
+            window.text_box.configure(state='normal')
+            window.text_box.delete('1.0', 'end')
+            for script_file_path in script_file_path_list:
+                window.text_box.insert('insert', '%s\n' % script_file_path)
+            window.text_box.configure(state='disabled')
+            script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
+            window.focus_force()
+
+        def destroy_window(window):
+            window.destroy()
+
+        global script_file_path_list
         self.title('选择脚本文件')
         self.geometry('1000x600')
         self.resizable(False, False)
@@ -80,11 +103,62 @@ class ScriptWindow(tkinter.Toplevel):
             self.text_box.insert('insert', '%s\n' % script_path)
         self.text_box.configure(state='disabled')
         page_targetname.script_select_button.configure(state='disabled')
-        ttk.Button(self, text='选择文件', command=lambda: select_file(3), width=10).place(relx=0.89, rely=0.83)
-        ttk.Button(self, text='保存', command=lambda: self.destroy(), width=10).place(relx=0.89, rely=0.9)
+        ttk.Button(self, text='选择文件', command=lambda: choose_script_files(self), width=10).place(relx=0.89, rely=0.83)
+        ttk.Button(self, text='保存', command=lambda: destroy_window(self), width=10).place(relx=0.89, rely=0.9)
         page_targetname.script_select_button.wait_window(self)
         app.attributes('-disabled', False)
         page_targetname.script_select_button.configure(state='normal')
+        app.focus_force()
+
+
+# 定义选择黑名单文件的Toplevel类
+class BlacklistWindow(tkinter.Toplevel):
+    def __init__(self):
+        tkinter.Toplevel.__init__(self)
+
+        def destroy_window(window):
+            global blacklist_string
+            global blacklist_list
+            temp_string = self.text_box.get('1.0', 'end')
+            temp_list = utils.string_to_list(temp_string)
+            if temp_string != '':
+                blacklist_string = temp_string
+                for item in temp_list:
+                    if item in blacklist_list:
+                        pass
+                    else:
+                        blacklist_list.append(item)
+                for item in blacklist_list:
+                    if item in temp_list:
+                        pass
+                    else:
+                        blacklist_list.remove(item)
+            window.destroy()
+
+        global blacklist_string
+        self.title('修改黑名单')
+        self.geometry('1000x600')
+        self.resizable(False, False)
+        self.focus_force()
+        app.attributes('-disabled', True)
+        self.file_frame = tkinter.LabelFrame(self, text='修改黑名单', font=('DengXian', 10))
+        self.file_frame.place(relx=0.01, rely=0.01, relwidth=0.86, relheight=0.98)
+        self.scrollbar_v = tkinter.Scrollbar(self.file_frame)
+        self.scrollbar_v.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        self.scrollbar_h = tkinter.Scrollbar(self.file_frame, orient='horizontal')
+        self.scrollbar_h.pack(side=tkinter.BOTTOM, fill=tkinter.X)
+        self.text_box = tkinter.Text(self.file_frame, font=('Calibri', 12), wrap='none')
+        self.text_box.pack(expand=tkinter.YES, fill=tkinter.BOTH)
+        self.text_box.configure(xscrollcommand=self.scrollbar_h.set)
+        self.text_box.configure(yscrollcommand=self.scrollbar_v.set)
+        self.text_box.insert('insert', '%s' % blacklist_string)
+        self.scrollbar_v.configure(command=self.text_box.yview)
+        self.scrollbar_h.configure(command=self.text_box.xview)
+        page_targetname.blacklist_select_button.configure(state='disabled')
+        ttk.Button(self, text='保存', command=lambda: destroy_window(self), width=10).place(relx=0.89, rely=0.9)
+        page_targetname.blacklist_select_button.wait_window(self)
+        app.attributes('-disabled', False)
+        page_targetname.blacklist_select_button.configure(state='normal')
         app.focus_force()
 
 
@@ -93,9 +167,9 @@ class ScriptInputWindow(tkinter.Toplevel):
     def __init__(self, title_text, size, text, button, dict_type):
         tkinter.Toplevel.__init__(self)
 
-        def destroy_window(name):
-            rescue_text[name] = self.text_box.get()
-            self.destroy()
+        def destroy_window(name, window):
+            rescue_text[name] = window.text_box.get()
+            window.destroy()
 
         self.title(title_text)
         self.geometry(size)
@@ -106,7 +180,7 @@ class ScriptInputWindow(tkinter.Toplevel):
         tkinter.Label(self, text=text, font=('DengXian', 12)).place(relx=0.02, rely=0.1)
         self.text_box = ttk.Entry(self, width=70, font=('DengXian', 12))
         self.text_box.pack(side='bottom', pady=5)
-        ttk.Button(self, text='保存', command=lambda: destroy_window(dict_type), width=10).pack(side='bottom', pady=5)
+        ttk.Button(self, text='保存', command=lambda: destroy_window(dict_type, self), width=10).pack(side='bottom', pady=5)
         button.wait_window(self)
         app.attributes('-disabled', False)
         button.configure(state='normal')
@@ -121,7 +195,7 @@ class StageWindow(tkinter.Toplevel):
         def anti_closing():
             pass
 
-        def destroy_window():
+        def destroy_window(window):
             global update_rescue_stage_flag
             for list_index in range(1, int(rescue_text['stage_number']) + 1):
                 if utils.is_text_valid(rescue_combobox_list[list_index].get(), rescue_entry_list[list_index].get()):
@@ -133,7 +207,7 @@ class StageWindow(tkinter.Toplevel):
                     messagebox.showerror('错误', '不合理的内容！')
                     self.focus_force()
                     return
-            self.destroy()
+            window.destroy()
             app.after(10, update_rescue_box)
             update_rescue_stage_flag = True
 
@@ -149,7 +223,7 @@ class StageWindow(tkinter.Toplevel):
         self.focus_force()
         app.attributes('-disabled', True)
         page_rescue.stage_button.configure(state='disabled')
-        ttk.Button(self, text='保存', command=lambda: destroy_window(), width=10).grid(columnspan=3, column=0, row=int(rescue_text['stage_number']) + 1, padx=5, pady=5)
+        ttk.Button(self, text='保存', command=lambda: destroy_window(self), width=10).grid(columnspan=3, column=0, row=int(rescue_text['stage_number']) + 1, padx=5, pady=5)
         for index in range(1, int(rescue_text['stage_number']) + 1):
             tkinter.Label(self, text='阶段 %s: ' % str(index).zfill(2), font=('DengXian', 12)).grid(column=0, row=index - 1, padx=5, pady=5, sticky='w')
             combobox = ttk.Combobox(self, width=12, state='readonly', textvariable=tkinter.StringVar())
@@ -187,19 +261,17 @@ style.theme_settings('xpnative', settings={
     'TNotebook.Tab': {'configure': {'font': ('DengXian', 12)}}})
 style.theme_use('xpnative')
 
-# 定义Director目前的版本号
-__version__ = 'v0.1.3-alpha'
-
 # 定义需要使用到的tkinter variables
 move_checkbutton_flag = tkinter.IntVar()
 script_checkbutton_flag = tkinter.IntVar()
 log_checkbutton_flag = tkinter.IntVar()
-wildcard_checkbutton_flag = tkinter.IntVar()
+blacklist_checkbutton_flag = tkinter.IntVar()
 msg_checkbutton_flag = tkinter.IntVar()
 prohibit_bosses_checkbutton_flag = tkinter.IntVar()
 qc_nop4_checkbutton_flag = tkinter.IntVar()
 script_string_var = tkinter.StringVar()
 script_string_var.set('')
+blacklist_string = ''
 
 # 定义需要使用到的boolean
 update_rescue_stage_flag = True
@@ -251,13 +323,14 @@ def exit_save():
         settings_log.write('move_checkbutton_flag = %s\n' % move_checkbutton_flag.get())
         settings_log.write('script_checkbutton_flag = %s\n' % script_checkbutton_flag.get())
         settings_log.write('log_checkbutton_flag = %s\n' % log_checkbutton_flag.get())
-        settings_log.write('wildcard_checkbutton_flag = %s\n' % wildcard_checkbutton_flag.get())
+        settings_log.write('blacklist_checkbutton_flag = %s\n' % blacklist_checkbutton_flag.get())
         settings_log.write('msg_checkbutton_flag = %s\n' % msg_checkbutton_flag.get())
         settings_log.write('prohibit_bosses_checkbutton_flag = %s\n' % prohibit_bosses_checkbutton_flag.get())
         settings_log.write('vmf_path = %s\n' % paths_dict['vmf_path'].replace('\n', ''))
         settings_log.write('dict_path = %s\n' % paths_dict['dict_path'].replace('\n', ''))
         settings_log.write('game_path = %s\n' % paths_dict['game_path'].replace('\n', ''))
         settings_log.write('rescue_path = %s\n' % paths_dict['rescue_path'].replace('\n', ''))
+        settings_log.write('blacklist_list = %s\n' % blacklist_string.replace('\n', '\x1b'))
         settings_log.write('script_file_path_list = ')
         for file_path in script_file_path_list:
             temp_string[1] += (file_path.replace('\n', '') + ' \x1b ')
@@ -280,7 +353,10 @@ def get_id_and_origin():
             if temp_flag is False and re.match('\t\"classname\" \".*?\"', move_row):
                 entity_classname = move_row.split('\" \"')[1].replace('\"', '').replace('\n', '')
                 if entity_classname in move_criteria:
-                    temp_flag = True
+                    if move_criteria[entity_classname].get():
+                        temp_flag = True
+                    else:
+                        continue
                 else:
                     continue
             if temp_flag is True and re.match('\t\"origin\" \".*?\"', move_row):
@@ -289,57 +365,48 @@ def get_id_and_origin():
 
 
 # 作用：调用选择文件(夹)的窗口并保存其路径
-# 注意：window形参的缺省值为None
+# 注意：无
 def select_file(selection_index):
     global script_file_path_list
     match selection_index:
         case 0:
             paths_dict['vmf_path'] = tkinter.filedialog.askopenfilename(filetypes=[('Valve Map Format', '*.vmf')])
             page_options.vmf_box.configure(state='normal')
-            page_options.vmf_box.delete(0, tkinter.END)
+            page_options.vmf_box.delete(0, 'end')
             page_options.vmf_box.insert(0, paths_dict['vmf_path'])
             page_options.vmf_box.configure(state='readonly')
         case 1:
             paths_dict['dict_path'] = tkinter.filedialog.askopenfilename(filetypes=[('Director Dict File', '*.dict')])
             page_options.dict_box.configure(state='normal')
-            page_options.dict_box.delete(0, tkinter.END)
+            page_options.dict_box.delete(0, 'end')
             page_options.dict_box.insert(0, paths_dict['dict_path'])
             page_options.dict_box.configure(state='readonly')
         case 2:
             paths_dict['game_path'] = tkinter.filedialog.askopenfilename(filetypes=[('left4dead2.exe', 'left4dead2.exe')])
             page_options.game_box.configure(state='normal')
-            page_options.game_box.delete(0, tkinter.END)
+            page_options.game_box.delete(0, 'end')
             page_options.game_box.insert(0, paths_dict['game_path'])
             page_options.game_box.configure(state='readonly')
         case 3:
-            script_file_path_list = tkinter.filedialog.askopenfilenames(filetypes=[('NUT File', '*.nut')])
-            ScriptWindow().text_box.configure(state='normal')
-            ScriptWindow().text_box.delete('1.0', 'tkinter.END.0')
-            for script_path in script_file_path_list:
-                ScriptWindow().text_box.insert('insert', '%s\n' % script_path)
-            ScriptWindow().text_box.configure(state='disabled')
-            script_string_var.set('(已选择%s个脚本文件)' % len(script_file_path_list))
-            ScriptWindow().focus_force()
-        case 4:
             paths_dict['rescue_path'] = tkinter.filedialog.askopenfilename(filetypes=[('NUT File', '*_finale.nut')])
             page_options.rescue_box.configure(state='normal')
-            page_options.rescue_box.delete(0, tkinter.END)
+            page_options.rescue_box.delete(0, 'end')
             page_options.rescue_box.insert(0, paths_dict['rescue_path'])
             page_options.rescue_box.configure(state='readonly')
-        case 5:
+        case 4:
             paths_dict['qc_dir_path'] = tkinter.filedialog.askdirectory()
             page_resources.qc_box.configure(state='normal')
-            page_resources.qc_box.delete(0, tkinter.END)
+            page_resources.qc_box.delete(0, 'end')
             page_resources.qc_box.insert(0, paths_dict['qc_dir_path'])
             page_resources.qc_box.configure(state='readonly')
             if paths_dict['qc_dir_path'] != '' and paths_dict['qc_output_path'] != '':
                 page_resources.qc_compile_button.configure(state='normal')
             else:
                 page_resources.qc_compile_button.configure(state='disabled')
-        case 6:
+        case 5:
             paths_dict['qc_output_path'] = tkinter.filedialog.askdirectory()
             page_resources.qc_output_box.configure(state='normal')
-            page_resources.qc_output_box.delete(0, tkinter.END)
+            page_resources.qc_output_box.delete(0, 'end')
             page_resources.qc_output_box.insert(0, paths_dict['qc_output_path'])
             page_resources.qc_output_box.configure(state='readonly')
             if paths_dict['qc_dir_path'] != '' and paths_dict['qc_output_path'] != '':
@@ -385,6 +452,10 @@ def update_flags():
     else:
         page_targetname.script_select_button.configure(state='disabled')
         script_string_var.set('')
+    if blacklist_checkbutton_flag.get():
+        page_targetname.blacklist_select_button.configure(state='normal')
+    else:
+        page_targetname.blacklist_select_button.configure(state='disabled')
     if msg_checkbutton_flag.get():
         page_rescue.msg_button.configure(state='normal')
     else:
@@ -454,7 +525,7 @@ def replace_string(old_file, new_file, file_path):
             temp_flag = False
         new_file.write(old_file_row)
     if log_checkbutton_flag.get():
-        with open('%s.log' % file_path, 'w', -1, 'utf-8') as log_file:
+        with open('%s.log' % file_path, mode='w', encoding='utf-8') as log_file:
             for entities_item in entities_dict.items():
                 log_file.write('%s -> %s\n' % (entities_item[0], entities_item[1]))
             for entities_item in list(set(blacklist_list)):
@@ -473,7 +544,7 @@ def generate_obfuscate_targetname(file):
             blacklist_list.append(file_row.split('*')[0].split('\"')[-1].split('\x1b')[-1])
         if re.findall('\"targetname\" \".*?\"', file_row):
             file_row = file_row.split("\" \"")[1][:-2]
-            if utils.is_startswith_in_list(file_row, blacklist_list):
+            if not utils.is_startswith_in_list(file_row, blacklist_list):
                 entities_dict[file_row] = utils.generate_random_string()
 
 
@@ -483,7 +554,7 @@ def update_rescue_box():
     global update_rescue_stage_flag
     stage_number = rescue_text['stage_number']
     page_rescue.text_box.configure(state='normal')
-    page_rescue.text_box.delete('1.0', '100000.end')
+    page_rescue.text_box.delete('1.0', 'end')
     if msg_checkbutton_flag.get():
         page_rescue.text_box.insert('insert', 'Msg(\"%s\");\n\n' % rescue_text['msg'])
     page_rescue.text_box.insert('insert', 'PANIC <- 0\nTANK <- 1\nDELAY <- 2\nSCRIPTED <- 3\nCLEAROUT <- 4\nSETUP <- 5\nESCAPE <- 7\nRESULTS <- 8\nNONE <- 9\n\nDirectorOptions <-\n{\n')
@@ -528,12 +599,17 @@ def update_version_check():
         return
     if new_version == __version__:
         page_update.update_frame.version_box.configure(state='normal')
-        page_update.update_frame.version_box.delete(0, tkinter.END)
+        page_update.update_frame.version_box.delete(0, 'end')
         page_update.update_frame.version_box.insert(0, 'Director处于最新版本！')
+        page_update.update_frame.version_box.configure(state='readonly')
+    elif new_version == 'ERROR':
+        page_update.update_frame.version_box.configure(state='normal')
+        page_update.update_frame.version_box.delete(0, 'end')
+        page_update.update_frame.version_box.insert(0, '网络连接失败！')
         page_update.update_frame.version_box.configure(state='readonly')
     else:
         page_update.update_frame.version_box.configure(state='normal')
-        page_update.update_frame.version_box.delete(0, tkinter.END)
+        page_update.update_frame.version_box.delete(0, 'end')
         page_update.update_frame.version_box.insert(0, 'Director有新版本可供升级！最新版本号：%s！' % new_version)
         page_update.update_frame.version_box.configure(state='readonly')
 
@@ -553,12 +629,12 @@ page_targetname.text_third = ttk.Label(page_targetname.option_frame, textvariabl
 page_targetname.text_third.grid(column=1, row=1, padx=5, pady=5, sticky='w')
 page_targetname.script_select_button = ttk.Button(page_targetname.option_frame, text='选择脚本文件', command=lambda: ScriptWindow(), width=15, state='disabled')
 page_targetname.script_select_button.grid(column=2, row=1, padx=5, pady=5)
-page_targetname.wildcard_checkbutton = ttk.Checkbutton(page_targetname.option_frame, text='启用通配符黑名单', variable=wildcard_checkbutton_flag)
-page_targetname.wildcard_checkbutton.grid(column=0, row=2, padx=5, pady=5, sticky='w')
-page_targetname.wildcard_checkbutton.invoke()
-page_targetname.log_checkbutton = ttk.Checkbutton(page_targetname.option_frame, text='保存混淆字典', variable=log_checkbutton_flag)
+page_targetname.blacklist_checkbutton = ttk.Checkbutton(page_targetname.option_frame, text='启用targetname黑名单', command=lambda: update_flags(), variable=blacklist_checkbutton_flag)
+page_targetname.blacklist_checkbutton.grid(column=0, row=2, padx=5, pady=5, sticky='w')
+page_targetname.blacklist_select_button = ttk.Button(page_targetname.option_frame, text='修改黑名单', command=lambda: BlacklistWindow(), width=15, state='disabled')
+page_targetname.blacklist_select_button.grid(column=2, row=2, padx=5, pady=5)
+page_targetname.log_checkbutton = ttk.Checkbutton(page_targetname.option_frame, text='保存混淆字典', command=lambda: update_flags(), variable=log_checkbutton_flag)
 page_targetname.log_checkbutton.grid(column=0, row=3, padx=5, pady=5, sticky='w')
-page_targetname.log_checkbutton.invoke()
 page_targetname.execute_button = ttk.Button(page_targetname, text='混淆', command=lambda: do_obfuscate(), width=9)
 page_targetname.execute_button.place(relx=0.8, rely=0.83)
 page_targetname.test_button = ttk.Button(page_targetname, text='测试', command=lambda: edit_script_files(), width=9)
@@ -571,11 +647,11 @@ page_resources.qc_frame.place(relx=0.005, rely=0.005, relwidth=0.49, relheight=0
 ttk.Label(page_resources.qc_frame, text='选择文件夹：').grid(column=0, row=0, padx=5, pady=6, sticky='w')
 page_resources.qc_box = ttk.Entry(page_resources.qc_frame, width=62, state='readonly')
 page_resources.qc_box.grid(column=1, row=0, padx=5, pady=6)
-ttk.Button(page_resources.qc_frame, text='浏览', command=lambda: select_file(5), width=9).grid(column=2, row=0, padx=5, pady=6)
+ttk.Button(page_resources.qc_frame, text='浏览', command=lambda: select_file(4), width=9).grid(column=2, row=0, padx=5, pady=6)
 ttk.Label(page_resources.qc_frame, text='选择输出位置：').grid(column=0, row=1, padx=5, pady=6, sticky='w')
 page_resources.qc_output_box = ttk.Entry(page_resources.qc_frame, width=62, state='readonly')
 page_resources.qc_output_box.grid(column=1, row=1, padx=5, pady=6)
-ttk.Button(page_resources.qc_frame, text='浏览', command=lambda: select_file(6), width=9).grid(column=2, row=1, padx=5, pady=6)
+ttk.Button(page_resources.qc_frame, text='浏览', command=lambda: select_file(5), width=9).grid(column=2, row=1, padx=5, pady=6)
 page_resources.qc_nop4_checkbutton = ttk.Checkbutton(page_resources.qc_frame, text='-nop4', command=lambda: update_flags(), variable=qc_nop4_checkbutton_flag)
 page_resources.qc_nop4_checkbutton.grid(column=0, row=2, padx=5, pady=5, sticky='w')
 page_resources.qc_compile_button = ttk.Button(page_resources.qc_frame, text='编译', command=lambda: walk_through_qc_files(paths_dict['qc_dir_path'], paths_dict['game_path'].removesuffix('left4dead2.exe') + 'bin/studiomdl.exe'), width=9, state='disabled')
@@ -628,7 +704,7 @@ ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file
 ttk.Label(page_options.option_frame, text='救援脚本路径：').grid(column=0, row=3, padx=5, pady=6, sticky='w')
 page_options.rescue_box = ttk.Entry(page_options.option_frame, width=165, state='readonly')
 page_options.rescue_box.grid(column=1, row=3, padx=5, pady=6)
-ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(4), width=9).grid(column=2, row=3, padx=5, pady=6)
+ttk.Button(page_options.option_frame, text='浏览', command=lambda: select_file(3), width=9).grid(column=2, row=3, padx=5, pady=6)
 
 page_update.update_frame = tkinter.LabelFrame(page_update, text='当前版本：%s' % __version__, font=('DengXian', 10))
 page_update.update_frame.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.98)
@@ -638,7 +714,7 @@ page_update.update_frame.version_box.grid(column=1, row=1, pady=5)
 ttk.Button(page_update.update_frame, text='手动更新', state='disabled', command=lambda: update_version_check(), width=9).grid(column=2, row=1, padx=5, pady=5)
 
 # notebook里添加新页
-notebook.add(page_targetname, text='Targetname混淆')
+notebook.add(page_targetname, text='地图混淆')
 notebook.add(page_second, text='贴图')
 notebook.add(page_third, text='脚本')
 notebook.add(page_resources, text='资源提取器')
@@ -647,9 +723,9 @@ notebook.add(page_options, text='路径设置')
 notebook.add(page_update, text='版本更新')
 notebook.pack(padx=10, pady=5, fill='both', expand=True)
 
-# 初始化时自动读取储存好的配置文件，若没有，则生成新的配置文件
+# 作用：初始化时自动读取储存好的配置文件，若没有，则生成新的配置文件
 try:
-    with open(os.getenv('APPDATA') + '\\Director\\director.ini', 'a+') as director_settings:
+    with open(os.getenv('APPDATA') + '\\Director\\director.ini', mode='a+', encoding='utf-8') as director_settings:
         director_settings.seek(0)
         for row in director_settings:
             if row.startswith('move_coordinate ='):
@@ -664,11 +740,11 @@ try:
                 if int(row.split(' = ')[1]) == 1:
                     page_targetname.script_checkbutton.invoke()
             if row.startswith('log_checkbutton_flag ='):
-                if int(row.split(' = ')[1]) == 0:
+                if int(row.split(' = ')[1]) == 1:
                     page_targetname.log_checkbutton.invoke()
-            if row.startswith('wildcard_checkbutton_flag ='):
-                if int(row.split(' = ')[1]) == 0:
-                    page_targetname.wildcard_checkbutton.invoke()
+            if row.startswith('blacklist_checkbutton_flag ='):
+                if int(row.split(' = ')[1]) == 1:
+                    page_targetname.blacklist_checkbutton.invoke()
             if row.startswith('msg_checkbutton_flag ='):
                 if int(row.split(' = ')[1]) == 1:
                     page_rescue.msg_checkbutton.invoke()
@@ -695,6 +771,9 @@ try:
                 page_options.rescue_box.configure(state='normal')
                 page_options.rescue_box.insert(0, paths_dict['rescue_path'])
                 page_options.rescue_box.configure(state='readonly')
+            if row.startswith('blacklist_list ='):
+                blacklist_string = row.split(' = ')[1].replace('\x1b', '\n')
+                blacklist_list = utils.string_to_list(blacklist_string)
             if row.startswith('script_file_path_list ='):
                 if row != 'script_file_path_list = \n':
                     for path in row.split(' = ')[1].split(' \x1b '):
@@ -706,7 +785,7 @@ try:
                     move_criteria[move_list.split(': ')[0]] = tkinter.IntVar(value=int(move_list.split(': ')[1]))
             update_flags()
 except FileNotFoundError:
-    director_settings = open(os.getenv('APPDATA') + '\\Director\\director.ini', 'x')
+    director_settings = open(os.getenv('APPDATA') + '\\Director\\director.ini', mode='x', encoding='utf-8')
     director_settings.close()
 finally:
     pass
