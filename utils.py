@@ -1,4 +1,5 @@
 import random
+import re
 
 
 def generate_random_string(digit=16):

@@ -89,16 +89,16 @@ class ScriptWindow(tkinter.Toplevel):
         app.attributes('-disabled', True)
         self.file_frame = tkinter.LabelFrame(self, text='选择文件', font=('DengXian', 10))
         self.file_frame.place(relx=0.01, rely=0.01, relwidth=0.86, relheight=0.98)
-        self.scrollbar_v = tkinter.Scrollbar(self.file_frame)
-        self.scrollbar_v.pack(side=tkinter.RIGHT, fill=tkinter.Y)
-        self.scrollbar_h = tkinter.Scrollbar(self.file_frame, orient='horizontal')
-        self.scrollbar_h.pack(side=tkinter.BOTTOM, fill=tkinter.X)
+        self.y_scrollbar = tkinter.Scrollbar(self.file_frame)
+        self.y_scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        self.x_scrollbar = tkinter.Scrollbar(self.file_frame, orient='horizontal')
+        self.x_scrollbar.pack(side=tkinter.BOTTOM, fill=tkinter.X)
         self.text_box = tkinter.Text(self.file_frame, font=('Calibri', 12), wrap='none')
         self.text_box.pack(expand=tkinter.YES, fill=tkinter.BOTH)
-        self.text_box.configure(xscrollcommand=self.scrollbar_h.set)
-        self.text_box.configure(yscrollcommand=self.scrollbar_v.set)
-        self.scrollbar_v.configure(command=self.text_box.yview)
-        self.scrollbar_h.configure(command=self.text_box.xview)
+        self.text_box.configure(xscrollcommand=self.x_scrollbar.set)
+        self.text_box.configure(yscrollcommand=self.y_scrollbar.set)
+        self.y_scrollbar.configure(command=self.text_box.yview)
+        self.x_scrollbar.configure(command=self.text_box.xview)
         for script_path in script_file_path_list:
             self.text_box.insert('insert', '%s\n' % script_path)
         self.text_box.configure(state='disabled')
@@ -143,17 +143,17 @@ class BlacklistWindow(tkinter.Toplevel):
         app.attributes('-disabled', True)
         self.file_frame = tkinter.LabelFrame(self, text='修改黑名单', font=('DengXian', 10))
         self.file_frame.place(relx=0.01, rely=0.01, relwidth=0.86, relheight=0.98)
-        self.scrollbar_v = tkinter.Scrollbar(self.file_frame)
-        self.scrollbar_v.pack(side=tkinter.RIGHT, fill=tkinter.Y)
-        self.scrollbar_h = tkinter.Scrollbar(self.file_frame, orient='horizontal')
-        self.scrollbar_h.pack(side=tkinter.BOTTOM, fill=tkinter.X)
+        self.y_scrollbar = tkinter.Scrollbar(self.file_frame)
+        self.y_scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        self.x_scrollbar = tkinter.Scrollbar(self.file_frame, orient='horizontal')
+        self.x_scrollbar.pack(side=tkinter.BOTTOM, fill=tkinter.X)
         self.text_box = tkinter.Text(self.file_frame, font=('Calibri', 12), wrap='none')
         self.text_box.pack(expand=tkinter.YES, fill=tkinter.BOTH)
-        self.text_box.configure(xscrollcommand=self.scrollbar_h.set)
-        self.text_box.configure(yscrollcommand=self.scrollbar_v.set)
+        self.text_box.configure(xscrollcommand=self.x_scrollbar.set)
+        self.text_box.configure(yscrollcommand=self.y_scrollbar.set)
         self.text_box.insert('insert', '%s' % blacklist_string)
-        self.scrollbar_v.configure(command=self.text_box.yview)
-        self.scrollbar_h.configure(command=self.text_box.xview)
+        self.y_scrollbar.configure(command=self.text_box.yview)
+        self.x_scrollbar.configure(command=self.text_box.xview)
         page_targetname.blacklist_select_button.configure(state='disabled')
         ttk.Button(self, text='保存', command=lambda: destroy_window(self), width=10).place(relx=0.89, rely=0.9)
         page_targetname.blacklist_select_button.wait_window(self)
@@ -241,6 +241,28 @@ class StageWindow(tkinter.Toplevel):
         app.focus_force()
 
 
+class EntityTreeview(ttk.Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.pack(fill='both')
+        treeview_list_top = ('targetname', '混淆后targetname', 'classname', 'origin')
+        treeview_list = [['123', '87I-Sw2tT#6PfQmi', 'logic_timer', '0 0 0'], ['abc', '0ld6Mt3T#+7DSmHx', 'env_fade', '-1 -3 -5']]
+        self.treeview = ttk.Treeview(self, columns=treeview_list_top, height=30, show='headings')
+        x_scroll = tkinter.Scrollbar(self, orient='horizontal')
+        y_scroll = tkinter.Scrollbar(self)
+        y_scroll.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        x_scroll.pack(side=tkinter.BOTTOM, fill=tkinter.X)
+        self.treeview.configure(xscrollcommand=x_scroll.set, yscrollcommand=y_scroll.set)
+        x_scroll.configure(command=self.treeview.xview)
+        y_scroll.configure(command=self.treeview.yview)
+        self.treeview.pack()
+        for i in range(len(treeview_list_top)):
+            self.treeview.heading(column=treeview_list_top[i], text=treeview_list_top[i])
+            self.treeview.column(treeview_list_top[i], width=147, anchor='center', stretch=True)
+        for data in treeview_list:
+            self.treeview.insert('', 'end', values=data)
+
+
 # 初始化窗口并定义notebook变量和style
 app = Window()
 notebook = ttk.Notebook(app)
@@ -305,7 +327,7 @@ move_criteria = {'ai_speechfilter': tkinter.IntVar(value=1), 'ambient_music': tk
                  'point_surroundtest': tkinter.IntVar(value=1), 'point_template': tkinter.IntVar(value=1), 'point_velocitysensor': tkinter.IntVar(value=1), 'postprocess_controller': tkinter.IntVar(value=1),
                  'shadow_control': tkinter.IntVar(value=1), 'sound_mix_layer': tkinter.IntVar(value=1), 'tanktrain_ai': tkinter.IntVar(value=1), 'target_changegravity': tkinter.IntVar(value=1), 'vgui_screen': tkinter.IntVar(value=1),
                  'vgui_slideshow_display': tkinter.IntVar(value=1), 'water_lod_control': tkinter.IntVar(value=1)}
-paths_dict = {'move_coordinate': '', 'vmf_path': '', 'dict_path': '', 'game_path': '', 'rescue_path': '', 'qc_dir_path': '', 'qc_output_path': ''}
+paths_dict = {'move_coordinate': '', 'vmf_path': '', 'dict_path': '', 'game_path': '', 'rescue_path': '', 'qc_dir_path': '', 'qc_output_path': '', 'vmt_dir_path': '', 'vmt_output_path': ''}
 rescue_text = {'msg': '', 'stage_number': '0'}
 entities_dict = {}
 move_entities_dict = {}
@@ -330,7 +352,11 @@ def exit_save():
         settings_log.write('dict_path = %s\n' % paths_dict['dict_path'].replace('\n', ''))
         settings_log.write('game_path = %s\n' % paths_dict['game_path'].replace('\n', ''))
         settings_log.write('rescue_path = %s\n' % paths_dict['rescue_path'].replace('\n', ''))
-        settings_log.write('blacklist_list = %s\n' % blacklist_string.replace('\n', '\x1b'))
+        settings_log.write('qc_dir_path = %s\n' % paths_dict['qc_dir_path'].replace('\n', ''))
+        settings_log.write('qc_output_path = %s\n' % paths_dict['qc_output_path'].replace('\n', ''))
+        settings_log.write('vmt_dir_path = %s\n' % paths_dict['vmt_dir_path'].replace('\n', ''))
+        settings_log.write('vmt_output_path = %s\n' % paths_dict['vmt_output_path'].replace('\n', ''))
+        settings_log.write('blacklist_list = %s\n' % blacklist_string.replace('\n', '\x1b').split('\x1b')[0])
         settings_log.write('script_file_path_list = ')
         for file_path in script_file_path_list:
             temp_string[1] += (file_path.replace('\n', '') + ' \x1b ')
@@ -413,6 +439,26 @@ def select_file(selection_index):
                 page_resources.qc_compile_button.configure(state='normal')
             else:
                 page_resources.qc_compile_button.configure(state='disabled')
+        case 6:
+            paths_dict['vmt_dir_path'] = tkinter.filedialog.askdirectory()
+            page_resources.vmt_box.configure(state='normal')
+            page_resources.vmt_box.delete(0, 'end')
+            page_resources.vmt_box.insert(0, paths_dict['vmt_dir_path'])
+            page_resources.vmt_box.configure(state='readonly')
+            if paths_dict['vmt_dir_path'] != '' and paths_dict['vmt_output_path'] != '':
+                page_resources.vmt_generate_button.configure(state='normal')
+            else:
+                page_resources.vmt_generate_button.configure(state='disabled')
+        case 7:
+            paths_dict['vmt_output_path'] = tkinter.filedialog.askdirectory()
+            page_resources.vmt_output_box.configure(state='normal')
+            page_resources.vmt_output_box.delete(0, 'end')
+            page_resources.vmt_output_box.insert(0, paths_dict['vmt_output_path'])
+            page_resources.vmt_output_box.configure(state='readonly')
+            if paths_dict['vmt_dir_path'] != '' and paths_dict['vmt_output_path'] != '':
+                page_resources.vmt_generate_button.configure(state='normal')
+            else:
+                page_resources.vmt_generate_button.configure(state='disabled')
 
 
 # 作用：备份脚本文件并替换里面的targetname
@@ -489,6 +535,7 @@ def do_obfuscate():
 
 
 # 作用：检查用户输入的坐标是否合理，合理则返回True，反之返回False
+#      合理形式为2.3 -1.0 59
 # 注意：若合理，会将坐标标准化后储存进paths_dict里
 def check_coordinate_rationality():
     if move_checkbutton_flag.get():
@@ -569,7 +616,7 @@ def update_rescue_box():
     page_rescue.text_box.configure(state='disabled')
 
 
-# 作用：自动更新救援预览窗口的内容
+# 作用：自动更新救援预览窗口的内容、自动检查坐标是否合理
 # 注意：0.1s递归己函数
 def auto_refresh_rescue_window():
     global update_rescue_stage_flag
@@ -578,6 +625,7 @@ def auto_refresh_rescue_window():
         page_rescue.stage_button.configure(state='normal')
     else:
         page_rescue.stage_button.configure(state='disable')
+    check_coordinate_rationality()
     app.after(100, auto_refresh_rescue_window)
 
 
@@ -585,10 +633,37 @@ def auto_refresh_rescue_window():
 # 注意：使用多线程方法编译
 def walk_through_qc_files(raw_path, mdl_path):
     gameinfo_path = mdl_path.removesuffix('bin/studiomdl.exe') + 'left4dead2/'
+    if qc_nop4_checkbutton_flag.get():
+        nop4_string = '-nop4'
+    else:
+        nop4_string = ''
     for dir_path, dir_names, file_names in os.walk(raw_path):
         for file_name in file_names:
             if file_name.endswith('.qc'):
-                _thread.start_new_thread(os.system, ('""%s" -game "%s" -nop4 "%s/%s""' % (mdl_path, gameinfo_path, dir_path, file_name),))
+                _thread.start_new_thread(os.system, ('""%s" -game "%s" %s "%s/%s""' % (mdl_path, gameinfo_path, nop4_string, dir_path, file_name),))
+
+
+# 作用：按照模板批量生成vmt文件
+# 注意：需要先判断模板是否合理
+def vmt_generate():
+    vmt_list = page_resources.text_box.get('0.0', 'end').split('\n')[:-1]
+    vmt_flag = True
+    for vmt_row in vmt_list:
+        if vmt_flag and vmt_row.find('%') != -1:
+            vmt_flag = False
+    if vmt_flag:
+        messagebox.showinfo('提示', 'vmt模板格式有误！\n需要一个%符号当作路径变量！')
+        return
+    for dir_path, dir_names, file_names in os.walk(paths_dict['vmt_dir_path']):
+        for file_name in file_names:
+            if file_name.endswith('.vtf'):
+                vmt_replace_string = os.path.join(dir_path, file_name).strip(paths_dict['vmt_dir_path'])[1:].removesuffix('.vtf')
+                with open('%s/%s.vmt' % (paths_dict['vmt_dir_path'], vmt_replace_string), mode='w', encoding='utf-8') as vmt_file:
+                    for vmt_row in vmt_list:
+                        if vmt_row.find('%') == -1:
+                            vmt_file.write(vmt_row + '\n')
+                        else:
+                            vmt_file.write(vmt_row.replace('%', '"' + vmt_replace_string) + '"\n')
 
 
 # 作用：获取Director最新版本并加以比较，输出更新结果
@@ -597,7 +672,7 @@ def update_version_check():
     new_version = downloader.get_latest_version()
     if new_version is None:
         return
-    if new_version == __version__:
+    elif new_version == __version__:
         page_update.update_frame.version_box.configure(state='normal')
         page_update.update_frame.version_box.delete(0, 'end')
         page_update.update_frame.version_box.insert(0, 'Director处于最新版本！')
@@ -616,7 +691,9 @@ def update_version_check():
 
 # 定义全部tkinter组件
 page_targetname.option_frame = tkinter.LabelFrame(page_targetname, text='选项', font=('DengXian', 10))
-page_targetname.option_frame.place(relx=0.01, rely=0.01, relwidth=0.48, relheight=0.48)
+page_targetname.option_frame.place(relx=0.005, rely=0.005, relwidth=0.49, relheight=0.49)
+page_targetname.treeview_frame = tkinter.LabelFrame(page_targetname, text='对应关系预览', font=('DengXian', 10))
+page_targetname.treeview_frame.place(relx=0.505, rely=0.005, relwidth=0.49, relheight=0.99)
 page_targetname.move_checkbutton = ttk.Checkbutton(page_targetname.option_frame, text='将指定点实体移动到指定位置:', command=lambda: update_flags(), variable=move_checkbutton_flag)
 page_targetname.move_checkbutton.grid(column=0, row=0, padx=5, pady=5, sticky='w')
 page_targetname.move_box = ttk.Entry(page_targetname.option_frame, width=28, state='readonly', font=('Calibri', 10))
@@ -635,12 +712,11 @@ page_targetname.blacklist_select_button = ttk.Button(page_targetname.option_fram
 page_targetname.blacklist_select_button.grid(column=2, row=2, padx=5, pady=5)
 page_targetname.log_checkbutton = ttk.Checkbutton(page_targetname.option_frame, text='保存混淆字典', command=lambda: update_flags(), variable=log_checkbutton_flag)
 page_targetname.log_checkbutton.grid(column=0, row=3, padx=5, pady=5, sticky='w')
-page_targetname.execute_button = ttk.Button(page_targetname, text='混淆', command=lambda: do_obfuscate(), width=9)
-page_targetname.execute_button.place(relx=0.8, rely=0.83)
-page_targetname.test_button = ttk.Button(page_targetname, text='测试', command=lambda: edit_script_files(), width=9)
-page_targetname.test_button.place(relx=0.6, rely=0.83)
-page_targetname.text_second = tkinter.Label(page_targetname, text='仅用于求生之路2的vmf文件！', font=('DengXian', 12), fg='red')
-page_targetname.text_second.place(relx=0.05, rely=0.835)
+page_targetname.execute_button = ttk.Button(page_targetname.option_frame, text='混淆', command=lambda: do_obfuscate(), width=9)
+page_targetname.execute_button.grid(column=0, row=5)
+page_targetname.test_button = ttk.Button(page_targetname.option_frame, text='测试', command=lambda: edit_script_files(), width=9)
+page_targetname.test_button.grid(column=2, row=5)
+EntityTreeview(page_targetname.treeview_frame)
 
 page_resources.qc_frame = tkinter.LabelFrame(page_resources, text='qc批量编译', font=('DengXian', 10))
 page_resources.qc_frame.place(relx=0.005, rely=0.005, relwidth=0.49, relheight=0.24)
@@ -656,6 +732,30 @@ page_resources.qc_nop4_checkbutton = ttk.Checkbutton(page_resources.qc_frame, te
 page_resources.qc_nop4_checkbutton.grid(column=0, row=2, padx=5, pady=5, sticky='w')
 page_resources.qc_compile_button = ttk.Button(page_resources.qc_frame, text='编译', command=lambda: walk_through_qc_files(paths_dict['qc_dir_path'], paths_dict['game_path'].removesuffix('left4dead2.exe') + 'bin/studiomdl.exe'), width=9, state='disabled')
 page_resources.qc_compile_button.grid(column=2, row=3, padx=5, pady=6)
+page_resources.vmt_frame = tkinter.LabelFrame(page_resources, text='vmt批量生成', font=('DengXian', 10))
+page_resources.vmt_frame.place(relx=0.505, rely=0.005, relwidth=0.49, relheight=0.48)
+ttk.Label(page_resources.vmt_frame, text='选择文件夹：').grid(column=0, row=0, padx=5, pady=6, sticky='w')
+page_resources.vmt_box = ttk.Entry(page_resources.vmt_frame, width=62, state='readonly')
+page_resources.vmt_box.grid(column=1, row=0, padx=5, pady=6)
+ttk.Button(page_resources.vmt_frame, text='浏览', command=lambda: select_file(6), width=9).grid(column=2, row=0, padx=5, pady=6)
+ttk.Label(page_resources.vmt_frame, text='选择输出位置：').grid(column=0, row=1, padx=5, pady=6, sticky='w')
+page_resources.vmt_output_box = ttk.Entry(page_resources.vmt_frame, width=62, state='readonly')
+page_resources.vmt_output_box.grid(column=1, row=1, padx=5, pady=6)
+ttk.Button(page_resources.vmt_frame, text='浏览', command=lambda: select_file(7), width=9).grid(column=2, row=1, padx=5, pady=6)
+page_resources.vmt_generate_button = ttk.Button(page_resources.vmt_frame, text='生成', command=lambda: vmt_generate(), width=9, state='disabled')
+page_resources.vmt_generate_button.grid(column=2, row=3, padx=5, pady=6)
+page_resources.vmt_frame_inside = tkinter.LabelFrame(page_resources.vmt_frame, text='模板', font=('DengXian', 10))
+page_resources.vmt_frame_inside.place(relx=0.01, rely=0.25, relwidth=0.83, relheight=0.72)
+page_resources.y_scrollbar = tkinter.Scrollbar(page_resources.vmt_frame_inside)
+page_resources.y_scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+page_resources.x_scrollbar = tkinter.Scrollbar(page_resources.vmt_frame_inside, orient='horizontal')
+page_resources.x_scrollbar.pack(side=tkinter.BOTTOM, fill=tkinter.X)
+page_resources.text_box = tkinter.Text(page_resources.vmt_frame_inside, font=('DengXian', 12), wrap='none')
+page_resources.text_box.pack(expand=tkinter.YES, fill=tkinter.BOTH)
+page_resources.text_box.configure(xscrollcommand=page_resources.x_scrollbar.set)
+page_resources.text_box.configure(yscrollcommand=page_resources.y_scrollbar.set)
+page_resources.y_scrollbar.configure(command=page_resources.text_box.yview)
+page_resources.x_scrollbar.configure(command=page_resources.text_box.xview)
 
 page_rescue.option_necessary_frame = tkinter.LabelFrame(page_rescue, text='必选设置', font=('DengXian', 10))
 page_rescue.option_necessary_frame.place(relx=0.005, rely=0.005, relwidth=0.24, relheight=0.09)
@@ -675,16 +775,16 @@ page_rescue.prohibit_bosses_checkbutton = ttk.Checkbutton(page_rescue.option_add
 page_rescue.prohibit_bosses_checkbutton.grid(column=0, row=1, padx=5, pady=5, sticky='w')
 page_rescue.preview_frame = tkinter.LabelFrame(page_rescue, text='预览', font=('DengXian', 10))
 page_rescue.preview_frame.place(relx=0.505, rely=0.005, relwidth=0.49, relheight=0.98)
-page_rescue.scrollbar_v = tkinter.Scrollbar(page_rescue.preview_frame)
-page_rescue.scrollbar_v.pack(side=tkinter.RIGHT, fill=tkinter.Y)
-page_rescue.scrollbar_h = tkinter.Scrollbar(page_rescue.preview_frame, orient='horizontal')
-page_rescue.scrollbar_h.pack(side=tkinter.BOTTOM, fill=tkinter.X)
+page_rescue.y_scrollbar = tkinter.Scrollbar(page_rescue.preview_frame)
+page_rescue.y_scrollbar.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+page_rescue.x_scrollbar = tkinter.Scrollbar(page_rescue.preview_frame, orient='horizontal')
+page_rescue.x_scrollbar.pack(side=tkinter.BOTTOM, fill=tkinter.X)
 page_rescue.text_box = tkinter.Text(page_rescue.preview_frame, font=('DengXian', 12), wrap='none')
 page_rescue.text_box.pack(expand=tkinter.YES, fill=tkinter.BOTH)
-page_rescue.text_box.configure(xscrollcommand=page_rescue.scrollbar_h.set)
-page_rescue.text_box.configure(yscrollcommand=page_rescue.scrollbar_v.set)
-page_rescue.scrollbar_v.configure(command=page_rescue.text_box.yview)
-page_rescue.scrollbar_h.configure(command=page_rescue.text_box.xview)
+page_rescue.text_box.configure(xscrollcommand=page_rescue.x_scrollbar.set)
+page_rescue.text_box.configure(yscrollcommand=page_rescue.y_scrollbar.set)
+page_rescue.y_scrollbar.configure(command=page_rescue.text_box.yview)
+page_rescue.x_scrollbar.configure(command=page_rescue.text_box.xview)
 ttk.Button(page_rescue, text='更新预览', command=lambda: update_rescue_box(), width=9).place(relx=0.25, rely=0.94, anchor='center')
 
 page_options.option_frame = tkinter.LabelFrame(page_options, text='文件路径', font=('DengXian', 10))
@@ -717,7 +817,7 @@ ttk.Button(page_update.update_frame, text='手动更新', state='disabled', comm
 notebook.add(page_targetname, text='地图混淆')
 notebook.add(page_second, text='贴图')
 notebook.add(page_third, text='脚本')
-notebook.add(page_resources, text='资源提取器')
+notebook.add(page_resources, text='资源处理')
 notebook.add(page_rescue, text='自定义救援')
 notebook.add(page_options, text='路径设置')
 notebook.add(page_update, text='版本更新')
